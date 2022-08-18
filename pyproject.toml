@@ -1,0 +1,23 @@
+[build-system]
+requires = ["gdal=3.5.1"]
+backend = "setuptools.build_meta"
+
+[project]
+name = "dl-datasets"
+version = "0.0.1"
+authors = [
+    {name = "Matt Reichenbach", email="matthew.p.reichenbach@usace.army.mil"},
+]
+description = "Classes and methods to help with the creation of datasets for deep-learning models."
+readme = "README.md"
+license = {file="LICENSE"}
+requires-python = ">=3.7"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+
+[project.urls]
+"Homepage" = "https://github.com/mpreichenbach/dl-datasets"
+"Bug Tracker" = "https://github.com/mprichenbach/dl-datasets/issues"
