@@ -30,7 +30,12 @@ class TestWriteRaster(unittest.TestCase):
         self.assertEqual(self.dataset.RasterXSize, self.dataset0.RasterXSize)
         self.assertEqual(self.dataset.RasterYSize, self.dataset0.RasterYSize)
 
+    def tearDown(self):
+        # GDAL requires the loaded dataset files to be closed before the written file can be deleted
+        self.dataset0 = None
+
+        os.remove(self.output_path)
+
 
 if __name__ == '__main__':
     unittest.main()
-    os.remove(self.output_path)

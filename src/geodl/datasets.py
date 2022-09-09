@@ -4,9 +4,8 @@ from osgeo import gdal
 
 
 class SemSeg:
-    """
-    Defines a semantic segmentation dataset to be used in deep-learning models.
-    """
+    """Defines a semantic segmentation dataset to be used in deep-learning models."""
+
     def __init__(self,
                  dataset_description: str = "",
                  channel_description: str = ""):
