@@ -1,9 +1,9 @@
 import unittest
-from DeepLearningDatasets import SemanticSegmentation
+from dl_datasets import SemanticSegmentationDataset
 
 DATASET_DESCRIPTION = "An image over Bellingham, WA."
 CHANNEL_DESCRIPTION = "RGB"
-TEST_IMAGE_PATH = "test/imagery/"
+TEST_IMAGE_PATH = "test/imagery/source/"
 
 
 class TestSemanticSegmentation(unittest.TestCase):
@@ -11,7 +11,7 @@ class TestSemanticSegmentation(unittest.TestCase):
 
     def setUp(self) -> None:
         """Set up test fixtures."""
-        self.dataset = SemanticSegmentation(dataset_description=DATASET_DESCRIPTION,
+        self.dataset = SemanticSegmentationDataset(dataset_description=DATASET_DESCRIPTION,
                                             channel_description=CHANNEL_DESCRIPTION)
 
     def test_set_source_imagery(self):
