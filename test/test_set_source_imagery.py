@@ -1,11 +1,11 @@
 # test_set_source_imagery.py
 
 import unittest
-from dl_datasets import SemanticSegmentationDataset
+from src.geodl.datasets import SemSeg
 
 
-class TestSemanticSegmentation(unittest.TestCase):
-    """Unit tests for the set_source_imagery method of the SemanticSegmentation class."""
+class TestSemSeg(unittest.TestCase):
+    """Unit tests for the set_source_imagery method of the SemSeg class."""
 
     def setUp(self) -> None:
         """Set up test fixtures."""
@@ -14,8 +14,8 @@ class TestSemanticSegmentation(unittest.TestCase):
         self.test_channel_description = "RGB"
         self.test_image_path = "test/imagery/source/"
 
-        self.dataset = SemanticSegmentationDataset(dataset_description=self.test_dataset_description,
-                                                   channel_description=self.test_channel_description)
+        self.dataset = SemSeg(dataset_description=self.test_dataset_description,
+                              channel_description=self.test_channel_description)
 
     def test_set_source_imagery(self):
         """Test whether the set_source_imagery method works as expected."""

@@ -1,6 +1,6 @@
 # test_write_raster.py
 
-from dl_datasets import write_raster
+from src.geodl.utils import write_raster
 import numpy as np
 import os
 from osgeo import gdal
@@ -25,10 +25,12 @@ class TestWriteRaster(unittest.TestCase):
 
         self.assertTrue(np.all(self.dataset.ReadAsArray() == self.dataset0.ReadAsArray()))
         self.assertEqual(self.dataset.GetProjection(), self.dataset0.GetProjection())
-        self.assertEqual(self.dataset.GetGeoTransform(), self.dataset0.GetGeoProjection())
+        self.assertEqual(self.dataset.GetGeoTransform(), self.dataset0.GetGeoTransform())
         self.assertEqual(self.dataset.RasterCount, self.dataset0.RasterCount)
         self.assertEqual(self.dataset.RasterXSize, self.dataset0.RasterXSize)
         self.assertEqual(self.dataset.RasterYSize, self.dataset0.RasterYSize)
 
-    def tearDown(self):
-        os.remove(self.output_path)
+
+if __name__ == '__main__':
+    unittest.main()
+    os.remove(self.output_path)
