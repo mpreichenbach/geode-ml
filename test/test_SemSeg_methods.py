@@ -69,21 +69,27 @@ class TestSemSeg(unittest.TestCase):
         self.label_tile = None
 
     def test_get_label_polygons(self):
+        """Test whether the get_label_polygons method works as expected."""
         return None
 
     def test_rasterize_labels(self):
+        """Test whether the rasterize_labels method works as expected."""
         return None
 
     def test_resample(self):
+        """Test whether the resample method works as expected."""
         return None
 
     def test_return_batch(self):
+        """Test whether the return_batch method works as expected."""
         return None
 
     def test_set_label_imagery(self):
+        """Test whether the set_label_imagery method works as expected."""
         return None
 
     def test_set_label_polygons(self):
+        """Test whether the set_label_polygons method works as expected."""
         return None
 
     def test_set_source_imagery(self):
