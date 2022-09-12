@@ -22,6 +22,7 @@ class SemSeg:
         self.source_pixel_units: str = ""
         self.source_resolutions: dict = {}
         self.tile_dimension: int = 0
+        self.tile_path: str = ""
 
     def generate_tiles(self, dimension: int,
                        tile_path: str,
