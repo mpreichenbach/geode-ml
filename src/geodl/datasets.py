@@ -31,17 +31,9 @@ class SemSeg:
 
         raise NotImplementedError("Method \'generate_tiles\' not implemented.")
 
-    def get_labels(self, osm_classes: list) -> None:
+    def get_label_polygons(self, osm_classes: list) -> None:
 
-        raise NotImplementedError("Method \'get_labels\' not implemented.")
-
-    def load_source_image(self, value: int) -> gdal.Dataset:
-
-        raise NotImplementedError("Method \'load_source_image\' not implemented.")
-
-    def set_source_imagery(self, path: str) -> None:
-
-        raise NotImplementedError("Method \'set_source_imagery\' not implemented.")
+        raise NotImplementedError("Method \'get_label_polygons\' not implemented.")
 
     def rasterize_labels(self, burn_value: int,
                          no_data_value: int) -> None:
@@ -57,10 +49,14 @@ class SemSeg:
 
         raise NotImplementedError("Method \'return_batch\' not implemented.")
 
-    def save_dataset(self, path: str) -> bool:
-
-        raise NotImplementedError("Method \'save_dataset\' not implementd.")
-
-    def set_labels(self, path: str) -> None:
+    def set_label_imagery(self, rasters_path: str) -> None:
 
         raise NotImplementedError("Method \'set_labels\' not implemented.")
+
+    def set_label_polygons(self, polygons_path) -> None:
+
+        raise NotImplementedError("Method \'set_labels\' not implemented.")
+
+    def set_source_imagery(self, path: str) -> None:
+
+        raise NotImplementedError("Method \'set_source_imagery\' not implemented.")
