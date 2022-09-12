@@ -25,9 +25,7 @@ class SemSeg:
 
     def generate_tiles(self, dimension: int,
                        tile_path: str,
-                       class_proportions: None,
-                       drop_single_class_tiles: bool = True,
-                       n_images: int = 0) -> None:
+                       drop_single_class_tiles: bool = True) -> None:
 
         raise NotImplementedError("Method \'generate_tiles\' not implemented.")
 
