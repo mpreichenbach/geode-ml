@@ -34,8 +34,9 @@ class SemSeg:
 
         raise NotImplementedError("Method \'get_label_polygons\' not implemented.")
 
-    def rasterize_labels(self, burn_value: int,
-                         no_data_value: int) -> None:
+    def rasterize_labels(self, save_path: str,
+                         burn_value: int = 1,
+                         no_data_value: int = 0) -> None:
 
         raise NotImplementedError("Method \'rasterize_labels\' not implemented.")
 
