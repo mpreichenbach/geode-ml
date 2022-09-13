@@ -18,8 +18,8 @@ class BaseTestGeodl(unittest.TestCase):
         cls.tile_dimension = 512
         cls.test_image_path = "test/imagery/source/"
         cls.test_osm_keys = ["building"]
-        cls.test_osm_vector_path = "test/imagery/osm_label_polygons"
-        cls.test_vector_path = "test/imagery/label_polygons"
+        cls.test_osm_vector_path = "test/imagery/osm_label_vectors"
+        cls.test_vector_path = "test/imagery/label_vectors"
         cls.test_raster_path = "test/imagery/label_rasters"
         cls.test_tile_path = "test/imagery/tiles"
 
@@ -27,7 +27,7 @@ class BaseTestGeodl(unittest.TestCase):
                              channel_description=cls.test_channel_description)
 
         cls.n_source_images = len(os.listdir(cls.test_image_path))
-        cls.n_source_vectors = len(os.listdir(cls.source_polygon_path))
+        cls.n_source_vectors = len(os.listdir(cls.test_vector_path))
 
 
 class TestGenerateTiles(BaseTestGeodl):
@@ -80,13 +80,13 @@ class TestGenerateTiles(BaseTestGeodl):
         shutil.rmtree(self.test_tile_path)
 
 
-class TestGetLabelPolygons(BaseTestGeodl):
-    """Unit tests for the get_label_polygons method of the SemSeg class."""
+class TestGetLabelvectors(BaseTestGeodl):
+    """Unit tests for the get_label_vectors method of the SemSeg class."""
 
     def setUp(self) -> None:
-        """Sets up the test fixtures for the get_label_polygons tests."""
+        """Sets up the test fixtures for the get_label_vectors tests."""
 
-        self.dataset.get_label_polygons(osm_keys=self.test_osm_keys,
+        self.dataset.get_label_vectors(osm_keys=self.test_osm_keys,
                                         save_path=self.test_vector_path)
 
         self.vector_folder_names = os.listdir(self.test_vector_path)
@@ -97,51 +97,23 @@ class TestGetLabelPolygons(BaseTestGeodl):
         for root, dirs, files in os.walk(self.test_vector_path):
             for file in files:
                 if file.endswith(".shp"):
-                    self.n_polygon_files += 1
+                    self.n_vector_files += 1
 
     def test_save_location(self) -> None:
-        """Test whether the polygons are saved in the correct place."""
+        """Test whether the vectors are saved in the correct place."""
         self.assertGreater(self.n_vector_folders, 0)
 
     def test_equal_number(self) -> None:
-        """Test whether the correct number of polygons were downloaded."""
+        """Test whether the correct number of vectors were downloaded."""
         self.assertEqual(self.n_source_images, self.n_shapefiles)
 
     def tearDown(self) -> None:
-        """Deletes the directory created with get_label_polygons."""
+        """Deletes the directory created with get_label_vectors."""
 
         shutil.rmtree(self.test_vector_path)
 
 
-class TestRasterizeLabels(BaseTestGeodl):
-    """Unit tests for the rasterize_labels method of the SemSeg class."""
-
-    def setUp(self) -> None:
-        """Sets up the test fixtures for the rasterize_labels tests."""
-
-        self.dataset.rasterize_labels(save_path=self.test_raster_path)
-        self.n_rasters = len(os.listdir(self.test_raster_path))
-
-    def test_save_location(self) -> None:
-        """Test whether the rasters were saved in the correct place."""
-        self.assertGreater(self.n_rasters, 0)
-
-    def test_equal_number(self):
-        """Test whether the same number of rasters were created as there are polygons."""
-        self.assertEqual(self.n_source_images, self.n_rasters)
-
-    def tearDown(self) -> None:
-        """Deletes the directory created by rasterize_labels."""
-
-
-    def test_rasterize_labels(self):
-        """Test whether the rasterize_labels method works as expected."""
-        return None
-
-    def test_resample(self):
-        """Test whether the resample method works as expected."""
-        return None
-
+class TestReturnBatch(BaseTestGeodl):
     def test_return_batch(self):
         """Test whether the return_batch method works as expected."""
         return None
@@ -150,8 +122,8 @@ class TestRasterizeLabels(BaseTestGeodl):
         """Test whether the set_label_imagery method works as expected."""
         return None
 
-    def test_set_label_polygons(self):
-        """Test whether the set_label_polygons method works as expected."""
+    def test_set_label_vectors(self):
+        """Test whether the set_label_vectors method works as expected."""
         return None
 
     def test_set_source_imagery(self):
@@ -161,17 +133,6 @@ class TestRasterizeLabels(BaseTestGeodl):
         self.assertEqual(self.dataset.source_path, self.test_image_path)
         self.assertListEqual(self.dataset.source_images, ["bellingham_cropped.tif"])
 
-    @classmethod
-    def tearDownClass(cls) -> None:
-        """Remove text fixtures."""
-
-        cls.test_channel_description = None
-        cls.test_dataset_description = None
-        cls.test_image_path = None
-        cls.tile_dimension = None
-        cls.test_tile_path = None
-
-        cls.dataset = None
 
 
 if __name__ == "__main__":
