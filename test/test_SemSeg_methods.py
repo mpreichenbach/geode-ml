@@ -8,7 +8,7 @@ from src.geodl.datasets import SemSeg
 import unittest
 
 
-class GeodlBaseTest(unittest.TestCase):
+class BaseTestGeodl(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         """Set up test fixtures."""
@@ -17,6 +17,7 @@ class GeodlBaseTest(unittest.TestCase):
         cls.test_dataset_description = "An image over Bellingham, WA."
         cls.tile_dimension = 512
         cls.test_image_path = "test/imagery/source/"
+        cls.test_osm_keys = ["building"]
         cls.test_polygon_path = "test/imagery/label_polygons"
         cls.test_tile_path = "test/imagery/tiles"
 
@@ -24,11 +25,11 @@ class GeodlBaseTest(unittest.TestCase):
                              channel_description=cls.test_channel_description)
 
 
-class TestGenerateTiles(GeodlBaseTest):
+class TestGenerateTiles(BaseTestGeodl):
     """Unit tests for the generate_tiles method of the SemSeg class."""
 
     def setUp(self) -> None:
-        # run generate_tiles() for the following tests
+        """Sets up the test fixtures for the generate_tiles tests."""
         self.dataset.generate_tiles(dimension=self.tile_dimension,
                                     tile_path=self.test_tile_path)
 
@@ -38,38 +39,61 @@ class TestGenerateTiles(GeodlBaseTest):
         self.image_tile = gdal.Open(os.path.join(self.test_tile_path, images, image_tiles_list[0]))
         self.label_tile = gdal.Open(os.path.join(self.test_tile_path, labels, label_tiles_list[0]))
 
-    def test_save_location(self):
+    def test_save_location(self) -> None:
         """Test whether tiles are actually saved in the correct place."""
         self.assertGreater(len(list_image_tiles), 0)
         self.assertGreater(len(list_label_tiles), 0)
 
-    def test_equal_tiles(self):
+    def test_equal_tiles(self) -> None:
         """Test whether the same number of tiles are generated for the imagery and labels."""
         self.assertEqual(len(list_img_tiles), len(list_label_tiles))
 
-    def test_number_of_bands(self):
+    def test_number_of_bands(self) -> None:
         """Test whether tiles have correct number of bands."""
         self.assertEqual(image_tile.RasterCount, 3)
         self.assertEqual(label_tile.RasterCount, 1)
 
-    def test_dimensions(self):
+    def test_dimensions(self) -> None:
         """Test whether tiles have the correct dimensions."""
         self.assertEqual(image_tile.RasterXSize, 512)
         self.assertEqual(label_tile.RasterYSize, 512)
 
-    def test_raster_content(self):
+    def test_raster_content(self) -> None:
         """Test whether the tiles have nonzero pixels."""
         self.assertGreater(np.sum(image_tile.ReadAsArray()), 0)
         self.assertGreater(np.sum(label_tile.ReadAsArray()), 0)
 
-    def tearDown(self):
-        # delete the directories created by generate_tiles()
+    def tearDown(self) -> None:
+        """Deletes the directories created by generate_tiles()."""
         shutil.rmtree(self.test_tile_path)
 
 
-    def test_get_label_polygons(self):
-        """Test whether the get_label_polygons method works as expected."""
-        return None
+class TestGetLabelPolygons(BaseTestGeodl):
+    """Unit tests for the get_label_polygons method of the SemSeg class."""
+
+    def setUp(self) -> None:
+        """Sets up the test fixtures for the get_label_polygons test."""
+
+        self.dataset.get_label_polygons(osm_keys=self.test_osm_keys,
+                                        save_path=self.test_polygon_path)
+
+        self.n_images = len(os.listdir(self.test_image_path))
+        self.n_polygons = len(os.listdir(self.test_polygon_path))
+
+    def test_save_location(self) -> None:
+        """Test whether the polygons are saved in the correct place."""
+        self.assertGreater(self.n_polygons, 0)
+
+    def test_equal_files(self) -> None:
+        """Test whether the correct number of polygons were downloaded."""
+        self.assertEqual(self.n_images, self.n_polygons)
+
+    def tearDown(self) -> None:
+        """Deletes the directory created with get_label_polygons."""
+
+        shutil.rmtree(self.test_polygon_path)
+
+
 
     def test_rasterize_labels(self):
         """Test whether the rasterize_labels method works as expected."""

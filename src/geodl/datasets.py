@@ -30,7 +30,7 @@ class SemSeg:
 
         raise NotImplementedError("Method \'generate_tiles\' not implemented.")
 
-    def get_label_polygons(self, osm_classes: list) -> None:
+    def get_label_polygons(self, osm_keys: list) -> None:
 
         raise NotImplementedError("Method \'get_label_polygons\' not implemented.")
 
