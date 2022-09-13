@@ -113,10 +113,8 @@ class TestGetLabelvectors(BaseTestGeodl):
         shutil.rmtree(self.test_vector_path)
 
 
-class TestReturnBatch(BaseTestGeodl):
-    def test_return_batch(self):
-        """Test whether the return_batch method works as expected."""
-        return None
+class TestRasterizeVectors(BaseTestGeodl):
+    """Unit tests for the rasterize_vectors"""
 
     def test_set_label_imagery(self):
         """Test whether the set_label_imagery method works as expected."""
