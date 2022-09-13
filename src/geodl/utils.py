@@ -1,7 +1,19 @@
-# write_raster.py
+# utils.py
 
-from osgeo import gdal
+from osgeo import gdal, ogr
 
+
+def rasterize(vector_dataset: ogr.DataSource,
+              burn_value: int = 1,
+              no_data_value: int = 0) -> gdal.Dataset:
+
+    raise NotImplementedError("Method \'rasterize\' not implemented.")
+
+def resample(raster: gdal.Dataset,
+             method: str,
+             target_resolution: float) -> gdal.Dataset:
+
+    raise NotImplementedError("Method \'resample\' not implemented.")
 
 def write_raster(dataset: gdal.Dataset,
                  output_path: str,
