@@ -2,30 +2,33 @@
 
 import numpy as np
 import os
-from osgeo import gdal
+from osgeo import gdal, ogr
 import shutil
 from src.geodl.datasets import SemSeg
 import unittest
 
 
-class TestSemSeg(unittest.TestCase):
-    """Unit tests for the set_source_imagery method of the SemSeg class."""
-
+class GeodlBaseTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         """Set up test fixtures."""
 
         cls.test_channel_description = "RGB"
         cls.test_dataset_description = "An image over Bellingham, WA."
-        cls.test_image_path = "test/imagery/source/"
         cls.tile_dimension = 512
+        cls.test_image_path = "test/imagery/source/"
+        cls.test_polygon_path = "test/imagery/label_polygons"
         cls.test_tile_path = "test/imagery/tiles"
 
         cls.dataset = SemSeg(dataset_description=cls.test_dataset_description,
-                              channel_description=cls.test_channel_description)
+                             channel_description=cls.test_channel_description)
+
+
+class TestGenerateTiles(GeodlBaseTest):
+    """Unit tests for the generate_tiles method of the SemSeg class."""
 
     def setUp(self) -> None:
-        # run generate_tiles() for the following test
+        # run generate_tiles() for the following tests
         self.dataset.generate_tiles(dimension=self.tile_dimension,
                                     tile_path=self.test_tile_path)
 
@@ -35,25 +38,27 @@ class TestSemSeg(unittest.TestCase):
         self.image_tile = gdal.Open(os.path.join(self.test_tile_path, images, image_tiles_list[0]))
         self.label_tile = gdal.Open(os.path.join(self.test_tile_path, labels, label_tiles_list[0]))
 
-    def test_generate_tiles(self):
-        """Test whether the generate_tiles method works correctly."""
-
-        # test whether tiles are actually saved in the correct place
+    def test_save_location(self):
+        """Test whether tiles are actually saved in the correct place."""
         self.assertGreater(len(list_image_tiles), 0)
         self.assertGreater(len(list_label_tiles), 0)
 
-        # test whether the same number of tiles are generated for the imagery and labels
+    def test_equal_tiles(self):
+        """Test whether the same number of tiles are generated for the imagery and labels."""
         self.assertEqual(len(list_img_tiles), len(list_label_tiles))
 
-        # test whether tiles have correct number of bands
+    def test_number_of_bands(self):
+        """Test whether tiles have correct number of bands."""
         self.assertEqual(image_tile.RasterCount, 3)
         self.assertEqual(label_tile.RasterCount, 1)
 
-        # test whether tiles have the correct dimensions
+    def test_dimensions(self):
+        """Test whether tiles have the correct dimensions."""
         self.assertEqual(image_tile.RasterXSize, 512)
         self.assertEqual(label_tile.RasterYSize, 512)
 
-        # test whether the tiles have nonzero pixels
+    def test_raster_content(self):
+        """Test whether the tiles have nonzero pixels."""
         self.assertGreater(np.sum(image_tile.ReadAsArray()), 0)
         self.assertGreater(np.sum(label_tile.ReadAsArray()), 0)
 
@@ -61,12 +66,6 @@ class TestSemSeg(unittest.TestCase):
         # delete the directories created by generate_tiles()
         shutil.rmtree(self.test_tile_path)
 
-        # remove the tile attributes
-        self.image_tiles_list = None
-        self.label_tiles_list = None
-
-        self.image_tile = None
-        self.label_tile = None
 
     def test_get_label_polygons(self):
         """Test whether the get_label_polygons method works as expected."""
