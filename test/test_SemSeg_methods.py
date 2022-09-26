@@ -42,37 +42,37 @@ class TestGenerateTiles(BaseTestGeodl):
         self.image_tiles_list = os.listdir(os.path.join(self.test_tile_path, "images"))
         self.label_tiles_list = os.listdir(os.path.join(self.test_tile_path, "labels"))
 
-        self.image_tile = gdal.Open(os.path.join(self.test_tile_path, images, image_tiles_list[0]))
-        self.label_tile = gdal.Open(os.path.join(self.test_tile_path, labels, label_tiles_list[0]))
+        self.image_tile = gdal.Open(os.path.join(self.test_tile_path, "images", self.image_tiles_list[0]))
+        self.label_tile = gdal.Open(os.path.join(self.test_tile_path, "labels", self.label_tiles_list[0]))
 
     def test_save_location(self) -> None:
         """Test whether tiles are actually saved in the correct place."""
 
-        self.assertGreater(len(list_image_tiles), 0)
-        self.assertGreater(len(list_label_tiles), 0)
+        self.assertGreater(len(self.image_tiles_list), 0)
+        self.assertGreater(len(self.image_tiles_list), 0)
 
     def test_equal_tiles(self) -> None:
         """Test whether the same number of tiles are generated for the imagery and labels."""
 
-        self.assertEqual(len(list_img_tiles), len(list_label_tiles))
+        self.assertEqual(len(self.image_tiles_list), len(self.label_tiles_list))
 
     def test_number_of_bands(self) -> None:
         """Test whether tiles have correct number of bands."""
 
-        self.assertEqual(image_tile.RasterCount, 3)
-        self.assertEqual(label_tile.RasterCount, 1)
+        self.assertEqual(self.image_tile.RasterCount, 3)
+        self.assertEqual(self.label_tile.RasterCount, 1)
 
     def test_dimensions(self) -> None:
         """Test whether tiles have the correct dimensions."""
 
-        self.assertEqual(image_tile.RasterXSize, 512)
-        self.assertEqual(label_tile.RasterYSize, 512)
+        self.assertEqual(self.image_tile.RasterXSize, 512)
+        self.assertEqual(self.label_tile.RasterYSize, 512)
 
     def test_raster_content(self) -> None:
         """Test whether the tiles have nonzero pixels."""
 
-        self.assertGreater(np.sum(image_tile.ReadAsArray()), 0)
-        self.assertGreater(np.sum(label_tile.ReadAsArray()), 0)
+        self.assertGreater(np.sum(self.image_tile.ReadAsArray()), 0)
+        self.assertGreater(np.sum(self.label_tile.ReadAsArray()), 0)
 
     def tearDown(self) -> None:
         """Deletes the directories created by generate_tiles()."""
@@ -97,7 +97,7 @@ class TestGetLabelvectors(BaseTestGeodl):
         for root, dirs, files in os.walk(self.test_vector_path):
             for file in files:
                 if file.endswith(".shp"):
-                    self.n_vector_files += 1
+                    self.n_shapefiles += 1
 
     def test_save_location(self) -> None:
         """Test whether the vectors are saved in the correct place."""
@@ -114,22 +114,32 @@ class TestGetLabelvectors(BaseTestGeodl):
 
 
 class TestRasterizeVectors(BaseTestGeodl):
-    """Unit tests for the rasterize_vectors"""
+    """Unit tests for the rasterize_vectors method of the SemSeg class"""
 
-    def test_set_label_imagery(self):
+    def setUp(self) -> None:
+        """Sets up the test fixtures for the rasterize_vectors tests."""
+
+
+
+class TestSetLabelImagery(BaseTestGeodl):
         """Test whether the set_label_imagery method works as expected."""
-        return None
 
-    def test_set_label_vectors(self):
+        def method(self):
+            return None
+
+
+class TestSetLabelVectors(BaseTestGeodl):
         """Test whether the set_label_vectors method works as expected."""
-        return None
 
-    def test_set_source_imagery(self):
+        def method(self):
+            return None
+
+
+class TestSetSourceImagery(BaseTestGeodl):
         """Test whether the set_source_imagery method works as expected."""
-        self.dataset.set_source_imagery(path=self.test_image_path)
 
-        self.assertEqual(self.dataset.source_path, self.test_image_path)
-        self.assertListEqual(self.dataset.source_images, ["bellingham_cropped.tif"])
+        def method(self):
+            return None
 
 
 
