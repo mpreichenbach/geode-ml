@@ -9,26 +9,41 @@ import unittest
 
 
 class BaseTestGeodl(unittest.TestCase):
-    @classmethod
-    def setUpClass(cls) -> None:
-        """Set up test fixtures."""
 
-        cls.test_channel_description = "RGB"
-        cls.test_dataset_description = "An image over Bellingham, WA."
-        cls.tile_dimension = 512
-        cls.test_image_path = "test/imagery/source/"
-        cls.test_osm_keys = ["building"]
-        cls.test_osm_vector_path = "test/imagery/osm_label_vectors"
-        cls.test_vector_path = "test/imagery/label_vectors"
-        cls.test_raster_path = "test/imagery/label_rasters"
-        cls.test_tile_path = "test/imagery/tiles"
+    def __init__(self):
+        self.test_channel_description = "RGB"
+        self.test_dataset_description = "An image over Bellingham, WA."
+        self.tile_dimension = 512
+        self.test_image_path = "test/imagery/source/"
+        self.test_osm_keys = ["building"]
+        self.test_vector_path = "test/imagery/label_vectors"
+        self.test_raster_path = "test/imagery/label_rasters"
+        self.test_tile_path = "test/imagery/tiles"
 
-        cls.dataset = SemSeg(dataset_description=cls.test_dataset_description,
-                             channel_description=cls.test_channel_description)
+        self.dataset = SemSeg(dataset_description=self.test_dataset_description,
+                             channel_description=self.test_channel_description)
 
-        cls.n_source_images = len(os.listdir(cls.test_image_path))
-        cls.n_source_vectors = len(os.listdir(cls.test_vector_path))
+        self.n_source_images = len(os.listdir(self.test_image_path))
+        self.n_source_vectors = len(os.listdir(self.test_vector_path))
 
+        # get the source imagery filenames
+        self.source_imagery_names = []
+
+        for root, dirs, files in os.walk(self.test_vector_path):
+            for file in files:
+                if file.endswith(".shp"):
+                    self.source_imagery_names.append(file)
+
+        # get the source vector filenames
+        self.source_vector_names = []
+
+        for root, dirs, files in os.walk(self.test_vector_path):
+            for file in files:
+                if file.endswith(".shp"):
+                    self.source_vector_names.append(file)
+
+        if len(self.source_imagery_names) != len(self.source_vector_names):
+            raise(Exception("Different numbers of source images and source vectors."))
 
 class TestGenerateTiles(BaseTestGeodl):
     """Unit tests for the generate_tiles method of the SemSeg class."""
@@ -119,27 +134,55 @@ class TestRasterizeVectors(BaseTestGeodl):
     def setUp(self) -> None:
         """Sets up the test fixtures for the rasterize_vectors tests."""
 
+        # create a temporary directory
+        self.test_out_path = os.path.join(self.test_vector_path, "tmp")
+        os.mkdir(self.test_out_path)
 
+        # run the method on the test vector files
+        self.dataset.rasterize_vectors(out_path=self.test_out_path)
 
-class TestSetLabelImagery(BaseTestGeodl):
-        """Test whether the set_label_imagery method works as expected."""
+        # get the number of written rasters
+        self.n_rasters = 0
+        self.raster_names = []
 
-        def method(self):
-            return None
+        for root, dirs, files in os.walk(self.test_out_path):
+            for file in files:
+                if file.endswith(".tif"):
+                    self.n_rasters += 1
+                    self.raster_names.append(file)
 
+        # create a list of the number of pixel values in each written raster
+        self.pixel_value_list = []
 
-class TestSetLabelVectors(BaseTestGeodl):
-        """Test whether the set_label_vectors method works as expected."""
+        for raster_name in self.raster_names:
+            im = gdal.Open(os.path.join(self.test_out_path, raster_name))
+            n_pixel_values = np.unique(im.ReadAsArray())
+            self.pixel_value_list.append(n_pixel_values)
 
-        def method(self):
-            return None
+            im.close()
 
+        # get an object with only the unique numbers of pixel values
+        self.n_pixel_values = set(self.pixel_value_list)
 
-class TestSetSourceImagery(BaseTestGeodl):
-        """Test whether the set_source_imagery method works as expected."""
+    def test_save_location(self) -> None:
+        """Test whether the rasters are saved in the correct place."""
 
-        def method(self):
-            return None
+        self.assertGreater(self.n_rasters, 0)
+
+    def test_equal_number(self) -> None:
+        """Test whether the number of rasters equals the number of vector files."""
+
+        self.assertEqual(self.n_source_vectors, self.n_rasters)
+
+    def test_raster_content(self) -> None:
+        """Test whether the raster has the correct burned in values."""
+
+        self.assertEqual({2}, self.n_pixel_values)
+
+    def tearDown(self) -> None:
+        """Deletes the temporary directory created to hold the rasters."""
+
+        shutil.rmtree(self.test_out_path)
 
 
 
