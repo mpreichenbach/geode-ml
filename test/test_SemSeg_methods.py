@@ -10,39 +10,40 @@ import unittest
 
 class BaseTestGeodl(unittest.TestCase):
 
-    def __init__(self):
-        self.test_channel_description = "RGB"
-        self.test_dataset_description = "An image over Bellingham, WA."
-        self.tile_dimension = 512
-        self.test_image_path = "test/imagery/source/"
-        self.test_osm_keys = ["building"]
-        self.test_vector_path = "test/imagery/label_vectors"
-        self.test_raster_path = "test/imagery/label_rasters"
-        self.test_tile_path = "test/imagery/tiles"
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.test_channel_description = "RGB"
+        cls.test_dataset_description = "An image over Bellingham, WA."
+        cls.tile_dimension = 512
+        cls.test_image_path = "test/imagery/source/"
+        cls.test_osm_keys = ["building"]
+        cls.test_vector_path = "test/imagery/label_vectors"
+        cls.test_raster_path = "test/imagery/label_rasters"
+        cls.test_tile_path = "test/imagery/tiles"
 
-        self.dataset = SemSeg(dataset_description=self.test_dataset_description,
-                             channel_description=self.test_channel_description)
+        cls.dataset = SemSeg(dataset_description=cls.test_dataset_description,
+                             channel_description=cls.test_channel_description)
 
-        self.n_source_images = len(os.listdir(self.test_image_path))
-        self.n_source_vectors = len(os.listdir(self.test_vector_path))
+        cls.n_source_images = len(os.listdir(cls.test_image_path))
+        cls.n_source_vectors = len(os.listdir(cls.test_vector_path))
 
         # get the source imagery filenames
-        self.source_imagery_names = []
+        cls.source_imagery_names = []
 
-        for root, dirs, files in os.walk(self.test_vector_path):
+        for root, dirs, files in os.walk(cls.test_vector_path):
             for file in files:
                 if file.endswith(".shp"):
-                    self.source_imagery_names.append(file)
+                    cls.source_imagery_names.append(file)
 
         # get the source vector filenames
-        self.source_vector_names = []
+        cls.source_vector_names = []
 
-        for root, dirs, files in os.walk(self.test_vector_path):
+        for root, dirs, files in os.walk(cls.test_vector_path):
             for file in files:
                 if file.endswith(".shp"):
-                    self.source_vector_names.append(file)
+                    cls.source_vector_names.append(file)
 
-        if len(self.source_imagery_names) != len(self.source_vector_names):
+        if len(cls.source_imagery_names) != len(cls.source_vector_names):
             raise(Exception("Different numbers of source images and source vectors."))
 
 class TestGenerateTiles(BaseTestGeodl):
@@ -183,6 +184,33 @@ class TestRasterizeVectors(BaseTestGeodl):
         """Deletes the temporary directory created to hold the rasters."""
 
         shutil.rmtree(self.test_out_path)
+
+
+class TestSetSourceImagery(BaseTestGeodl):
+    """Unit tests for the set_source_imagery of the SemSeg class."""
+
+    def setUp(self) -> None:
+        """Set up the test fixtures for set_source_imagery tests."""
+
+        self.dataset.set_source_imagery(self.test_image_path)
+
+    def test_n_images(self):
+        """Tests whether the number of source images is correct."""
+
+        self.assertEqual(len(self.dataset.source_image_names), 1)
+
+    def test_image_names(self):
+        """Tests whether the image names are correct."""
+
+        self.assertEqual(self.dataset.source_image_names[0], "bellingham_clipped.tif")
+
+    def test_imagery_extent(self):
+        """Tests whether the extent of the test image is calculated correctly."""
+
+        test_value = [*self.dataset.source_extents.values()][1]
+        true_value = 1534703.7599999998
+
+        self.assertAlmostEqual(test_value, true_value, 2)
 
 
 

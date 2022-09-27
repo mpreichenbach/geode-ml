@@ -1,5 +1,7 @@
 # datasets.py
 
+import numpy as np
+import os
 from osgeo import gdal
 
 
@@ -16,9 +18,9 @@ class SemSeg:
         self.labels_path: str = ""
         self.raster_labels_path: str = ""
         self.resampled_resolutions: dict = {}
-        self.source_images: list = []
+        self.source_image_names: list = []
         self.source_path: str = ""
-        self.source_extent: float = 0.0
+        self.source_extents: dict = {}
         self.source_pixel_units: str = ""
         self.source_resolutions: dict = {}
         self.tile_dimension: int = 0
@@ -41,14 +43,24 @@ class SemSeg:
 
         raise NotImplementedError("Method \'rasterize_vectors\' not implemented.")
 
-    def set_label_imagery(self, rasters_path: str) -> None:
+    def set_label_imagery(self, raster_path: str) -> None:
 
         raise NotImplementedError("Method \'set_labels\' not implemented.")
 
-    def set_label_vectors(self, polygons_path) -> None:
+    def set_label_vectors(self, vector_path) -> None:
 
         raise NotImplementedError("Method \'set_labels\' not implemented.")
 
-    def set_source_imagery(self, path: str) -> None:
+    def set_source_imagery(self, source_path: str) -> None:
+        """Defines the source imagery to use for other methods; should be run before any other methods."""
+
+        # update source_path attribute
+        self.source_path = source_path
+
+        # get imagery names
+        self.source_image_names = os.listdir(self.source_path)
+
+        # loop through the imagery and extract relevant metadata
 
         raise NotImplementedError("Method \'set_source_imagery\' not implemented.")
+
