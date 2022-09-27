@@ -16,13 +16,11 @@ class SemSeg:
         self.dataset_description: str = dataset_description
         self.labels: dict = {}
         self.labels_path: str = ""
+        self.source_metadata: dict = {}
         self.raster_labels_path: str = ""
         self.resampled_resolutions: dict = {}
         self.source_image_names: list = []
         self.source_path: str = ""
-        self.source_extents: dict = {}
-        self.source_pixel_units: str = ""
-        self.source_resolutions: dict = {}
         self.tile_dimension: int = 0
         self.tile_path: str = ""
 
@@ -61,6 +59,26 @@ class SemSeg:
         self.source_image_names = os.listdir(self.source_path)
 
         # loop through the imagery and extract relevant metadata
+        for filename in self.source_image_names:
+            with gdal.Open(os.path.join(self.source_path, filename)) as dst:
+                metadata_dict = {}
+                metadata_dict["band_counts"] = dst.RasterCount
+                metadata_dict["dimensions"] = [dst.RasterXSize, dst.RasterYSize]
+                metadata_dict["resolution"] = (dst.GetGeoTransform[1], dst.GetGeoTransform[5])
+                metadata_dict["raster_extent"] = abs(dst.RasterXSize * dst.GetGeoTransform[1] *
+                                           dst.RasterYSize * dst.GetGeoTransform[5])
+
+                # calculate the "data_extent", or the raster_extent minus the area of nodata pixels. First, compute the
+                # number of nodata pixels
+                n_nodata_pixels = np.sum(np.where(np.sum(dst.ReadAsArray()) == 0, 1, 0))
+
+                if "metres" in dst.GetGeoTransform():
+                    metadata_dict["units"] = "meters"
+                else:
+                    raise(Exception("The raster " + filename + " may not be in meters."))
+
+                self.source_metadata[filename] = metadata_dict
+
 
         raise NotImplementedError("Method \'set_source_imagery\' not implemented.")
 

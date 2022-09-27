@@ -2,8 +2,7 @@
 
 import numpy as np
 import os
-from osgeo import gdal, ogr
-import shutil
+from osgeo import gdal
 from src.geodl.datasets import SemSeg
 import unittest
 
