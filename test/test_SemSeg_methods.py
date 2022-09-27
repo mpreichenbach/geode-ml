@@ -18,8 +18,10 @@ class BaseTestGeodl(unittest.TestCase):
         cls.test_image_path = "test/imagery/source/"
         cls.test_osm_keys = ["building"]
         cls.test_vector_path = "test/imagery/label_vectors"
+        cls.tmp_vector_path = "test/imagery/label_vectors/tmp"
         cls.test_raster_path = "test/imagery/label_rasters"
-        cls.test_tile_path = "test/imagery/tiles"
+        cls.tmp_raster_path = "test/imagery/label_rasters/tmp"
+        cls.tmp_tile_path = "test/imagery/tiles"
 
         cls.dataset = SemSeg(dataset_description=cls.test_dataset_description,
                              channel_description=cls.test_channel_description)
@@ -46,20 +48,37 @@ class BaseTestGeodl(unittest.TestCase):
         if len(cls.source_imagery_names) != len(cls.source_vector_names):
             raise(Exception("Different numbers of source images and source vectors."))
 
+    @classmethod
+    def tearDownClass(cls) -> None:
+        """Deletes all temporary directories."""
+
+        if os.path.isdir(cls.tmp_vector_path):
+            shutil.rmtree(cls.tmp_vector_path)
+
+        if os.path.isdir(cls.tmp_raster_path):
+            shutil.rmtree(cls.tmp_raster_path)
+
+        if os.path.isdir(cls.tmp_tile_path):
+            shutil.rmtree(cls.tmp_tile_path)
+
+
 class TestGenerateTiles(BaseTestGeodl):
     """Unit tests for the generate_tiles method of the SemSeg class."""
 
     def setUp(self) -> None:
         """Sets up the test fixtures for the generate_tiles tests."""
 
+        if not os.path.isdir(self.tmp_tile_path):
+            os.mkdir(self.tmp_tile_path)
+
         self.dataset.generate_tiles(dimension=self.tile_dimension,
-                                    tile_path=self.test_tile_path)
+                                    tile_path=self.tmp_tile_path)
 
-        self.image_tiles_list = os.listdir(os.path.join(self.test_tile_path, "images"))
-        self.label_tiles_list = os.listdir(os.path.join(self.test_tile_path, "labels"))
+        self.image_tiles_list = os.listdir(os.path.join(self.tmp_tile_path, "images"))
+        self.label_tiles_list = os.listdir(os.path.join(self.tmp_tile_path, "labels"))
 
-        self.image_tile = gdal.Open(os.path.join(self.test_tile_path, "images", self.image_tiles_list[0]))
-        self.label_tile = gdal.Open(os.path.join(self.test_tile_path, "labels", self.label_tiles_list[0]))
+        self.image_tile = gdal.Open(os.path.join(self.tmp_tile_path, "images", self.image_tiles_list[0]))
+        self.label_tile = gdal.Open(os.path.join(self.tmp_tile_path, "labels", self.label_tiles_list[0]))
 
     def test_save_location(self) -> None:
         """Test whether tiles are actually saved in the correct place."""
@@ -90,10 +109,10 @@ class TestGenerateTiles(BaseTestGeodl):
         self.assertGreater(np.sum(self.image_tile.ReadAsArray()), 0)
         self.assertGreater(np.sum(self.label_tile.ReadAsArray()), 0)
 
-    def tearDown(self) -> None:
-        """Deletes the directories created by generate_tiles()."""
-
-        shutil.rmtree(self.test_tile_path)
+    # def tearDown(self) -> None:
+    #     """Deletes the directories created by generate_tiles()."""
+    #
+    #     shutil.rmtree(self.test_tile_path)
 
 
 class TestGetLabelvectors(BaseTestGeodl):
@@ -101,6 +120,9 @@ class TestGetLabelvectors(BaseTestGeodl):
 
     def setUp(self) -> None:
         """Sets up the test fixtures for the get_label_vectors tests."""
+
+        if not os.path.exists(self.tmp_vector_path):
+            os.mkdir(self.tmp_vector_path)
 
         self.dataset.get_label_vectors(osm_keys=self.test_osm_keys,
                                         save_path=self.test_vector_path)
@@ -123,11 +145,15 @@ class TestGetLabelvectors(BaseTestGeodl):
         """Test whether the correct number of vectors were downloaded."""
         self.assertEqual(self.n_source_images, self.n_shapefiles)
 
-    def tearDown(self) -> None:
-        """Deletes the directory created with get_label_vectors."""
-
-        shutil.rmtree(self.test_vector_path)
-
+    # def tearDown(self) -> None:
+    #     """Deletes the directory created with get_label_vectors."""
+    #
+    #     # delete temporary files
+    #     for f in os.listdir(self.tmp_vector_path):
+    #         os.remove(os.path.join(self.tmp_vector_path, f))
+    #
+    #     # delete temporary directory
+    #     os.remove(self.tmp_vector_path)
 
 class TestRasterizeVectors(BaseTestGeodl):
     """Unit tests for the rasterize_vectors method of the SemSeg class"""
@@ -135,20 +161,18 @@ class TestRasterizeVectors(BaseTestGeodl):
     def setUp(self) -> None:
         """Sets up the test fixtures for the rasterize_vectors tests."""
 
-        # create a temporary directory
-        self.test_out_path = os.path.join(self.test_vector_path, "tmp")
-
-        if not os.path.exists(self.test_out_path):
-            os.mkdir(self.test_out_path)
+        # create a temporary folder
+        if not os.path.exists(self.tmp_raster_path):
+            os.mkdir(self.tmp_raster_path)
 
         # run the method on the test vector files
-        self.dataset.rasterize_vectors(out_path=self.test_out_path)
+        self.dataset.rasterize_vectors(out_path=self.tmp_raster_path)
 
         # get the number of written rasters
         self.n_rasters = 0
         self.raster_names = []
 
-        for root, dirs, files in os.walk(self.test_out_path):
+        for root, dirs, files in os.walk(self.tmp_raster_path):
             for file in files:
                 if file.endswith(".tif"):
                     self.n_rasters += 1
@@ -158,7 +182,7 @@ class TestRasterizeVectors(BaseTestGeodl):
         self.pixel_value_list = []
 
         for raster_name in self.raster_names:
-            im = gdal.Open(os.path.join(self.test_out_path, raster_name))
+            im = gdal.Open(os.path.join(self.tmp_raster_path, raster_name))
             n_pixel_values = np.unique(im.ReadAsArray())
             self.pixel_value_list.append(n_pixel_values)
 
@@ -182,11 +206,15 @@ class TestRasterizeVectors(BaseTestGeodl):
 
         self.assertEqual({2}, self.n_pixel_values)
 
-    def tearDown(self) -> None:
-        """Deletes the temporary directory created to hold the rasters."""
-
-        shutil.rmtree(self.test_out_path)
-
+    # def tearDown(self) -> None:
+    #     """Deletes the temporary directory created to hold the rasters."""
+    #
+    #     # delete temporary files
+    #     for f in os.listdir(self.tmp_raster_path):
+    #         os.remove(os.path.join(self.tmp_raster_path, f))
+    #
+    #     # delete temporary directory
+    #     os.remove(self.tmp_raster_path)
 
 class TestSetSourceImagery(BaseTestGeodl):
     """Unit tests for the set_source_imagery of the SemSeg class."""
