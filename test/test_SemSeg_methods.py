@@ -137,7 +137,9 @@ class TestRasterizeVectors(BaseTestGeodl):
 
         # create a temporary directory
         self.test_out_path = os.path.join(self.test_vector_path, "tmp")
-        os.mkdir(self.test_out_path)
+
+        if not os.path.exists(self.test_out_path):
+            os.mkdir(self.test_out_path)
 
         # run the method on the test vector files
         self.dataset.rasterize_vectors(out_path=self.test_out_path)
