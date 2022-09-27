@@ -60,28 +60,35 @@ class SemSeg:
 
         # loop through the imagery and extract relevant metadata
         for filename in self.source_image_names:
-            with gdal.Open(os.path.join(self.source_path, filename)) as dst:
-                # set metadata fields from the gdal.Dataset object
-                metadata_dict = {}
-                metadata_dict["band_counts"] = dst.RasterCount
-                metadata_dict["dimensions"] = [dst.RasterXSize, dst.RasterYSize]
-                metadata_dict["resolution"] = (dst.GetGeoTransform[1], dst.GetGeoTransform[5])
-                metadata_dict["raster_extent"] = np.abs(dst.RasterXSize * dst.GetGeoTransform[1] *
-                                           dst.RasterYSize * dst.GetGeoTransform[5])
+            dst = gdal.Open(os.path.join(self.source_path, filename))
 
-                # calculate the "data_extent", or the raster_extent minus the area of nodata pixels. First, compute the
-                # number of nodata pixels
-                n_nodata_pixels = np.sum(np.where(np.sum(dst.ReadAsArray()) == 0, 1, 0))
+            # set metadata fields from the gdal.Dataset object
+            metadata_dict = {}
+            gt = dst.GetGeoTransform()
+            x_dim = dst.RasterXSize
+            y_dim = dst.RasterYSize
 
-                # then compute the area of these pixels
-                nodata_area = np.abs(n_nodata_pixels * dst.GetGeoTransform[1] * dst.GetGeoTransform[5])
+            metadata_dict["band_counts"] = dst.RasterCount
+            metadata_dict["dimensions"] = (x_dim, y_dim)
+            metadata_dict["resolution"] = (gt[1], gt[5])
+            metadata_dict["raster_extent"] = np.abs(x_dim * gt[1] * y_dim * gt[5])
 
-                # set the data_extent in the metadata_dictionary
-                metadata_dict["data_extent"] = metadata_dict["raster_extent"] - nodata_area
+            # calculate the "data_extent", or the raster_extent minus the area of nodata pixels. First, compute the
+            # number of nodata pixels
+            n_nodata_pixels = np.sum(np.where(np.sum(dst.ReadAsArray()) == 0, 1, 0))
 
-                if "metres" in dst.GetGeoTransform():
-                    metadata_dict["units"] = "meters"
-                else:
-                    raise(Exception("The raster " + filename + " may not be in meters."))
+            # then compute the area of these pixels
+            nodata_area = np.abs(n_nodata_pixels * x_dim * y_dim)
 
-                self.source_metadata[filename] = metadata_dict
+            # set the data_extent in the metadata_dictionary
+            metadata_dict["data_extent"] = metadata_dict["raster_extent"] - nodata_area
+
+            if "metre" in dst.GetProjection():
+                metadata_dict["units"] = "metre"
+            else:
+                raise(Exception("The raster " + filename + " may not be in metres."))
+
+            self.source_metadata[filename] = metadata_dict
+
+            # close the gdal.Dataset object
+            dst = None

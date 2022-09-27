@@ -3,6 +3,7 @@
 import numpy as np
 import os
 from osgeo import gdal
+import shutil
 from src.geodl.datasets import SemSeg
 import unittest
 
@@ -108,11 +109,6 @@ class TestGenerateTiles(BaseTestGeodl):
         self.assertGreater(np.sum(self.image_tile.ReadAsArray()), 0)
         self.assertGreater(np.sum(self.label_tile.ReadAsArray()), 0)
 
-    # def tearDown(self) -> None:
-    #     """Deletes the directories created by generate_tiles()."""
-    #
-    #     shutil.rmtree(self.test_tile_path)
-
 
 class TestGetLabelvectors(BaseTestGeodl):
     """Unit tests for the get_label_vectors method of the SemSeg class."""
@@ -144,15 +140,6 @@ class TestGetLabelvectors(BaseTestGeodl):
         """Test whether the correct number of vectors were downloaded."""
         self.assertEqual(self.n_source_images, self.n_shapefiles)
 
-    # def tearDown(self) -> None:
-    #     """Deletes the directory created with get_label_vectors."""
-    #
-    #     # delete temporary files
-    #     for f in os.listdir(self.tmp_vector_path):
-    #         os.remove(os.path.join(self.tmp_vector_path, f))
-    #
-    #     # delete temporary directory
-    #     os.remove(self.tmp_vector_path)
 
 class TestRasterizeVectors(BaseTestGeodl):
     """Unit tests for the rasterize_vectors method of the SemSeg class"""
@@ -205,15 +192,6 @@ class TestRasterizeVectors(BaseTestGeodl):
 
         self.assertEqual({2}, self.n_pixel_values)
 
-    # def tearDown(self) -> None:
-    #     """Deletes the temporary directory created to hold the rasters."""
-    #
-    #     # delete temporary files
-    #     for f in os.listdir(self.tmp_raster_path):
-    #         os.remove(os.path.join(self.tmp_raster_path, f))
-    #
-    #     # delete temporary directory
-    #     os.remove(self.tmp_raster_path)
 
 class TestSetSourceImagery(BaseTestGeodl):
     """Unit tests for the set_source_imagery of the SemSeg class."""
@@ -236,7 +214,7 @@ class TestSetSourceImagery(BaseTestGeodl):
     def test_imagery_extent(self):
         """Tests whether the extent of the test image is calculated correctly."""
 
-        test_value = [*self.dataset.source_extents.values()][1]
+        test_value = self.dataset.source_metadata[self.dataset.source_image_names[0]]["data_extent"]
         true_value = 1534703.7599999998
 
         self.assertAlmostEqual(test_value, true_value, 2)
