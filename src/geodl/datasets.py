@@ -51,7 +51,14 @@ class SemSeg:
         Returns:
             None
         """
-        
+
+        # check whether a source imagery directory has been set and is nonempty.
+        if (self.source_path == ""):
+            raise Exception("Run the method set_source_imagery first.")
+        else:
+            if len(os.listdir(self.source_path)) == 0:
+                raise Exception("Run the method set_source_imagery with a nonempty directory.")
+
         raise NotImplementedError("Method \'get_label_polygons\' not implemented.")
 
     def rasterize_vectors(self, out_path: str,
