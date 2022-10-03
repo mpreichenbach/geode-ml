@@ -27,30 +27,83 @@ class SemSeg:
     def generate_tiles(self, dimension: int,
                        tile_path: str,
                        drop_single_class_tiles: bool = True) -> None:
+        """Generates image tiles from the source and label imagery for use in model training.
+
+        Args:
+            dimension: the side-length in pixels of the square tiles;
+            tile_path: the directory in which to save the tiles;
+            drop_single_class_tiles: whether to drop tile pairs in which the labels have only a single value.
+
+        Returns:
+            None
+        """
 
         raise NotImplementedError("Method \'generate_tiles\' not implemented.")
 
     def get_label_vectors(self, save_path: str,
                           osm_keys: list) -> None:
+        """Queries the OpenStreetMaps API and downloads vector data over the source imagery.
 
+        Args:
+            save_path: the directory in which to save the vector data;
+            osm_keys: a list of OSM keys describing the kind of data to query.
+
+        Returns:
+            None
+        """
+        
         raise NotImplementedError("Method \'get_label_polygons\' not implemented.")
 
     def rasterize_vectors(self, out_path: str,
                           burn_value: int = 1,
                           no_data_value: int = 0) -> None:
+        """Generates label rasters from the vector data, with dimensions matching the source imagery.
+
+        Args:
+            out_path: the directory in which to save the label rasters;
+            burn_value: the value to assign the positive instances of the land-cover type;
+            no_data_value: the value to assign the negative instances of the land-cover type.
+
+        Returns:
+            None
+        """
 
         raise NotImplementedError("Method \'rasterize_vectors\' not implemented.")
 
     def set_label_imagery(self, raster_path: str) -> None:
+        """Defines the label imagery to use for other methods, if not already created by rasterize_vectors.
+
+        Args:
+            raster_path: the directory containing the label rasters.
+
+        Returns:
+            None
+        """
 
         raise NotImplementedError("Method \'set_labels\' not implemented.")
 
     def set_label_vectors(self, vector_path) -> None:
+        """Defines the vector data, and provides a manual alternative to the get_label_vectors method; e.g., this method
+        is useful when one wants to use vector data from a source other than OpenStreetMaps.
+
+        Args:
+            vector_path: the directory containing the vector data (one sub-directory for each source image).
+
+        Returns:
+            None
+        """
 
         raise NotImplementedError("Method \'set_labels\' not implemented.")
 
     def set_source_imagery(self, source_path: str) -> None:
-        """Defines the source imagery to use for other methods; should be run before any other methods."""
+        """Defines the source imagery for the dataset; should be run before any other methods.
+
+        Args:
+            source_path: the directory containing tifs of the source imagery.
+
+        Returns:
+            None
+        """
 
         # update source_path attribute
         self.source_path = source_path
