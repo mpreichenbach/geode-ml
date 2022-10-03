@@ -124,6 +124,9 @@ class SemSeg:
             None
         """
 
+        # check whether the vector imagery is in good shape
+        self.check_vectors()
+
         raise NotImplementedError("Method \'generate_tiles\' not implemented.")
 
     def get_label_vectors(self, save_path: str,
@@ -139,7 +142,7 @@ class SemSeg:
         """
 
         # check whether the source imagery directory has been set and is nonempty.
-        self.check_source()
+        self.check_vectors()
 
         raise NotImplementedError("Method \'get_label_polygons\' not implemented.")
 
@@ -156,9 +159,6 @@ class SemSeg:
         Returns:
             None
         """
-        
-        # check whether the source imagery has been set and is nonempty
-        self.check_source()
         
         # check whether vector data has been set and matches the names in the source imagery
         self.check_vectors()

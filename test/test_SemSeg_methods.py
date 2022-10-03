@@ -10,27 +10,31 @@ import unittest
 
 class BaseTestGeodl(unittest.TestCase):
 
+    test_channel_description = "RGB"
+    test_dataset_description = "An image over Bellingham, WA."
+    tile_dimension = 512
+    test_image_path = "test/imagery/source/"
+    test_osm_keys = ["building"]
+    test_vector_path = "test/imagery/label_vectors"
+    tmp_vector_path = "test/imagery/label_vectors/tmp"
+    test_raster_path = "test/imagery/label_rasters"
+    tmp_raster_path = "test/imagery/label_rasters/tmp"
+    tmp_tile_path = "test/imagery/tiles"
+    source_imagery_names = []
+    source_vector_names = []
+
     @classmethod
     def setUpClass(cls) -> None:
-        cls.test_channel_description = "RGB"
-        cls.test_dataset_description = "An image over Bellingham, WA."
-        cls.tile_dimension = 512
-        cls.test_image_path = "test/imagery/source/"
-        cls.test_osm_keys = ["building"]
-        cls.test_vector_path = "test/imagery/label_vectors"
-        cls.tmp_vector_path = "test/imagery/label_vectors/tmp"
-        cls.test_raster_path = "test/imagery/label_rasters"
-        cls.tmp_raster_path = "test/imagery/label_rasters/tmp"
-        cls.tmp_tile_path = "test/imagery/tiles"
 
-        cls.dataset = SemSeg(dataset_description=cls.test_dataset_description,
+        cls.dataset = SemSeg(source_path=cls.test_image_path,
+                             vector_path=cls.test_vector_path,
+                             raster_path=cls.test_raster_path,
+                             tile_dimension=cls.tile_dimension,
+                             dataset_description=cls.test_dataset_description,
                              channel_description=cls.test_channel_description)
 
         cls.n_source_images = len(os.listdir(cls.test_image_path))
         cls.n_source_vectors = len(os.listdir(cls.test_vector_path))
-
-        # get the source imagery filenames
-        cls.source_imagery_names = []
 
         for root, dirs, files in os.walk(cls.test_vector_path):
             for file in files:
