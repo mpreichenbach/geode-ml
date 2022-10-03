@@ -3,10 +3,21 @@
 import numpy as np
 import os
 from osgeo import gdal
+from pathlib import Path
 
 
 class SemSeg:
     """Defines a semantic segmentation dataset to be used in deep-learning models."""
+
+    labels: dict = {}
+    vector_path: str = ""
+    source_metadata: dict = {}
+    raster__path: str = ""
+    resampled_metadata: dict = {}
+    source_image_names: list = []
+    source_path: str = ""
+    tile_dimension: int = 0
+    tile_path: str = ""
 
     def __init__(self,
                  dataset_description: str = "",
@@ -14,15 +25,51 @@ class SemSeg:
 
         self.channel_description: str = channel_description
         self.dataset_description: str = dataset_description
-        self.labels: dict = {}
-        self.labels_path: str = ""
-        self.source_metadata: dict = {}
-        self.raster_labels_path: str = ""
-        self.resampled_metadata: dict = {}
-        self.source_image_names: list = []
-        self.source_path: str = ""
-        self.tile_dimension: int = 0
-        self.tile_path: str = ""
+
+    @classmethod
+    def check_source(cls) -> None:
+        """Checks whether the source imagery has been set, and is nonempty.
+
+        Returns:
+            None
+
+        Raises:
+            Exception: if source_path has not been set;
+            Exception: if source_path has been set, but is empty.
+        """
+
+        if cls.source_path == "":
+            raise Exception("The source_path has not been set; run the method set_source_imagery first.")
+        elif len(os.listdir(cls.source_path)) == 0:
+            raise Exception("The source_path is empty.")
+
+    @classmethod
+    def check_vectors(cls):
+        """Checks whether the vector data has been set, and matches the names of the source imagery.
+        
+        Returns:
+            None
+
+        Raises:
+            Exception: if vector_path has not been set;
+            Exception: if vector_path is empty;
+            Exception: if vector data folder names do not match source imagery names;
+            Exception: if a vector data folder does not contain a shapefile.
+        """
+
+        if cls.vector_path == "":
+            raise Exception("The vector_path has not been set; run either the get_label_vectors "
+                            "or set_label_vectors first")
+        elif len(os.listdir(cls.vector_path)) == 0:
+            raise Exception("The vector_path is empty.")
+        elif [Path(x).stem for x in os.listdir(cls.source_path)] != os.listdir(cls.vector_path):
+            raise Exception("Source imagery names do not match vector data names.")
+        else:
+            for directory in os.listdir(cls.source_path):
+                fnames = os.listdir(directory)
+                shapefiles = [x for x in fnames if "shp" in x]
+                if len(shapefiles) != 1:
+                    raise Exception("A vector data directories must have exactly one shapefile.")
 
     def generate_tiles(self, dimension: int,
                        tile_path: str,
@@ -52,12 +99,8 @@ class SemSeg:
             None
         """
 
-        # check whether a source imagery directory has been set and is nonempty.
-        if (self.source_path == ""):
-            raise Exception("Run the method set_source_imagery first.")
-        else:
-            if len(os.listdir(self.source_path)) == 0:
-                raise Exception("Run the method set_source_imagery with a nonempty directory.")
+        # check whether the source imagery directory has been set and is nonempty.
+        self.check_source()
 
         raise NotImplementedError("Method \'get_label_polygons\' not implemented.")
 
@@ -74,6 +117,12 @@ class SemSeg:
         Returns:
             None
         """
+        
+        # check whether the source imagery has been set and is nonempty
+        self.check_source()
+        
+        # check whether vector data has been set and matches the names in the source imagery
+        self.check_vectors()
 
         raise NotImplementedError("Method \'rasterize_vectors\' not implemented.")
 
