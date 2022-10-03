@@ -16,15 +16,21 @@ class BaseTestGeodl(unittest.TestCase):
     test_image_path = "test/imagery/source/"
     test_osm_keys = ["building"]
     test_vector_path = "test/imagery/label_vectors"
-    tmp_vector_path = "test/imagery/label_vectors/tmp"
+    tmp = "test/imagery/tmp"
+    tmp_vector_path = "test/imagery/tmp/label_vectors"
     test_raster_path = "test/imagery/label_rasters"
-    tmp_raster_path = "test/imagery/label_rasters/tmp"
-    tmp_tile_path = "test/imagery/tiles"
+    tmp_raster_path = "test/imagery/tmp/label_rasters"
+    tmp_tile_path = "test/imagery/tmp/tiles"
     source_imagery_names = []
     source_vector_names = []
+    n_source_images = len(os.listdir(test_image_path))
+    n_source_vectors = len(os.listdir(test_vector_path))
 
     @classmethod
     def setUpClass(cls) -> None:
+
+        if not os.path.isdir(cls.tmp):
+            os.mkdir(cls.tmp)
 
         cls.dataset = SemSeg(source_path=cls.test_image_path,
                              vector_path=cls.test_vector_path,
@@ -33,23 +39,21 @@ class BaseTestGeodl(unittest.TestCase):
                              dataset_description=cls.test_dataset_description,
                              channel_description=cls.test_channel_description)
 
-        cls.n_source_images = len(os.listdir(cls.test_image_path))
-        cls.n_source_vectors = len(os.listdir(cls.test_vector_path))
 
-        for root, dirs, files in os.walk(cls.test_vector_path):
+        # get the source imagery filenames
+        for root, dirs, files in os.walk(cls.test_image_path):
             for file in files:
-                if file.endswith(".shp"):
+                if file.endswith(".tif"):
                     cls.source_imagery_names.append(file)
 
         # get the source vector filenames
-        cls.source_vector_names = []
 
         for root, dirs, files in os.walk(cls.test_vector_path):
             for file in files:
                 if file.endswith(".shp"):
                     cls.source_vector_names.append(file)
 
-        if len(cls.source_imagery_names) != len(cls.source_vector_names):
+        if cls.n_source_images != cls.n_source_vectors:
             raise(Exception("Different numbers of source images and source vectors."))
 
     @classmethod
@@ -64,6 +68,9 @@ class BaseTestGeodl(unittest.TestCase):
 
         if os.path.isdir(cls.tmp_tile_path):
             shutil.rmtree(cls.tmp_tile_path)
+
+        if os.path.isdir(cls.tmp):
+            shutil.rmtree(cls.tmp)
 
 
 class TestGenerateTiles(BaseTestGeodl):

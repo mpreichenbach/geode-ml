@@ -104,8 +104,8 @@ class SemSeg:
         elif [Path(x).stem for x in os.listdir(self.source_path)] != os.listdir(self.vector_path):
             raise Exception("Source imagery names do not match vector data names.")
         else:
-            for directory in os.listdir(self.source_path):
-                filenames = os.listdir(directory)
+            for directory in os.listdir(self.vector_path):
+                filenames = os.listdir(os.path.join(self.vector_path, directory))
                 shapefiles = [x for x in filenames if "shp" in x]
                 if len(shapefiles) != 1:
                     raise Exception("A vector data directories must have exactly one shapefile.")
