@@ -82,8 +82,7 @@ class TestGenerateTiles(BaseTestGeodl):
         if not os.path.isdir(self.tmp_tile_path):
             os.mkdir(self.tmp_tile_path)
 
-        self.dataset.generate_tiles(dimension=self.tile_dimension,
-                                    tile_path=self.tmp_tile_path)
+        self.dataset.generate_tiles()
 
         self.image_tiles_list = os.listdir(os.path.join(self.tmp_tile_path, "images"))
         self.label_tiles_list = os.listdir(os.path.join(self.tmp_tile_path, "labels"))

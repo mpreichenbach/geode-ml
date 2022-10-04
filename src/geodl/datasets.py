@@ -119,7 +119,11 @@ class SemSeg:
         Raises:
             Exception: if raster_path has not been set;
             Exception: if raster_path is empty;
-            Exception: if label raster names do not match source imagery names.
+            Exception: if label raster names do not match source imagery names;
+            Exception: if source/raster geotransforms do not match for a particular pair;
+            Exception: if source/raster width does not match for a particular pair;
+            Exception: if source/raster height does not match for a particular pair;
+            Exception: if source/raster projections do not match for a particular pair.
         """
 
         if self.raster_path == "":
@@ -127,11 +131,20 @@ class SemSeg:
                             "or rasterize_vectors first.")
         elif len(os.listdir(self.raster_path)) == 0:
             raise Exception("The raster_path is empty.")
+        elif os.listdir(self.source_path) != os.listdir(self.raster_path):
+            raise Exception("Source imagery names do not match label raster names.")
         else:
-            source_names = [Path(x).stem for x in os.listdir(self.source_path)]
-            label_names = [Path(y).stem for y in os.listdir(self.raster_path)]
-            if source_names != label_names:
-                raise Exception("Source imagery names do not match label raster names.")
+            for filename in self.source_image_names:
+                source_dataset = gdal.Open(os.path.join(self.source_path, filename))
+                label_dataset = gdal.Open(os.path.join(self.raster_path, filename))
+                if source_dataset.GetGeoTransform() != label_dataset.GetGeoTransform():
+                    raise Exception("Geotransforms do not match for " + filename + " pair.")
+                elif source_dataset.RasterXSize != label_dataset.RasterXSize:
+                    raise Exception("Raster x-dimensions do not match for " + filename + " pair.")
+                elif source_dataset.RasterYSize != label_dataset.RasterYSize:
+                    raise Exception("Raster y-dimensions do not match for " + filename + " pair.")
+                elif source_dataset.GetProjection() != label_dataset.GetProjection():
+                    raise Exception("Raster projections do not match for " + filename + " pair.")
 
     def generate_tiles(self, drop_single_class_tiles: bool = True,
                        verbose: bool = True) -> None:
@@ -160,61 +173,63 @@ class SemSeg:
         if not os.path.isdir(label_tiles_dir):
             os.mkdir(label_tiles_dir)
 
-        # loop through each source/label raster pair
+        # loop through each source/label raster pair to generate tiles
         for filename in self.source_image_names:
-            with gdal.Open(os.path.join(self.source_path, filename)) as src_dst:
-                with gdal.Open(os.path.join(self.raster_path, filename)) as lbl_dst:
-                    # get resolution and upper-left coordinate
-                    x_min, x_res, _, y_max, _, y_res = src_dst.GetGeoTransform()
+            # open the source and label rasters
+            src_dst = gdal.Open(os.path.join(self.source_path, filename))
+            lbl_dst = gdal.Open(os.path.join(self.raster_path, filename))
 
-                    # calculate projected lengths
-                    x_length = abs(x_res) * src_dst.RasterXSize
-                    y_length = abs(y_res) * src_dst.RasterYSize
+            # get resolution and upper-left coordinate
+            x_min, x_res, _, y_max, _, y_res = src_dst.GetGeoTransform()
 
-                    x_tile_length = x_length / dim
-                    y_tile_length = y_length / dim
+            # calculate projected lengths
+            x_length = abs(x_res) * src_dst.RasterXSize
+            y_length = abs(y_res) * src_dst.RasterYSize
 
-                    # calculate dimensions of tiles
-                    n_cols = int(x_length / self.tile_dimension)
-                    n_rows = int(y_length / self.tile_dimension)
+            x_tile_length = x_length / dim
+            y_tile_length = y_length / dim
 
-                    # calculate the divisions at which to cut the raster
-                    x_steps = [x_min + x_tile_length * i for i in range(n_cols + 1)]
-                    y_steps = [y_max - y_tile_length * i for i in range(n_rows + 1)]
+            # calculate dimensions of tiles
+            n_cols = int(x_length / self.tile_dimension)
+            n_rows = int(y_length / self.tile_dimension)
 
-                    # calculate pixel divisions
-                    x_steps_px = [dim * i for i in range(n_cols + 1)]
-                    y_steps_px = [dim * i for i in range(n_rows + 1)]
+            # calculate the divisions at which to cut the raster
+            x_steps = [x_min + x_tile_length * i for i in range(n_cols + 1)]
+            y_steps = [y_max - y_tile_length * i for i in range(n_rows + 1)]
 
-                    for i in range(n_cols):
-                        for j in range(n_rows):
-                            # check whether both labels exist in the label tile
-                            label_tile = lbl_dst.ReadAsArray(xoff=x_steps_px[i],
-                                                             yoff=y_steps_px[i],
-                                                             xsize=dim,
-                                                             ysize=dim)
+            # calculate pixel divisions
+            x_steps_px = [dim * i for i in range(n_cols + 1)]
+            y_steps_px = [dim * i for i in range(n_rows + 1)]
 
-                            if drop_single_class_tiles and len(np.unique(label_tile) == 1):
-                                continue
+            for i in range(n_cols):
+                for j in range(n_rows):
+                    # check whether both labels exist in the label tile
+                    label_tile = lbl_dst.ReadAsArray(xoff=x_steps_px[i],
+                                                     yoff=y_steps_px[i],
+                                                     xsize=dim,
+                                                     ysize=dim)
 
-                            # define the extent of the tile
-                            x_min_tile = x_steps[i]
-                            x_max_tile = x_steps[i + 1]
-                            y_max_tile = y_steps[j]
-                            y_min_tile = y_steps[j + 1]
+                    if drop_single_class_tiles and len(np.unique(label_tile) == 1):
+                        continue
 
-                            # set the output paths
-                            tile_name = filename + "_R{row}C{col}.tif"
-                            imagery_tile_path = os.path.join(imagery_tiles_dir, tile_name)
-                            label_tile_path = os.path.join(label_tiles_dir, tile_name)
+                    # define the extent of the tile
+                    x_min_tile = x_steps[i]
+                    x_max_tile = x_steps[i + 1]
+                    y_max_tile = y_steps[j]
+                    y_min_tile = y_steps[j + 1]
 
-                            gdal.Warp(destNameOrDestDS=imagery_tile_path,
-                                      srcDSOrSrcDSTab=src_dst,
-                                      outputBounds=(x_min_tile, y_min_tile, x_max_tile, y_max_tile))
+                    # set the output paths
+                    tile_name = filename + "_R{row}C{col}.tif"
+                    imagery_tile_path = os.path.join(imagery_tiles_dir, tile_name)
+                    label_tile_path = os.path.join(label_tiles_dir, tile_name)
 
-                            gdal.Warp(destNameOrDestDS=label_tile_path,
-                                      srcDSOrSrcDSTab=lbl_dst,
-                                      outputBounds=(x_min_tile, y_min_tile, x_max_tile, y_max_tile))
+                    gdal.Warp(destNameOrDestDS=imagery_tile_path,
+                              srcDSOrSrcDSTab=src_dst,
+                              outputBounds=(x_min_tile, y_min_tile, x_max_tile, y_max_tile))
+
+                    gdal.Warp(destNameOrDestDS=label_tile_path,
+                              srcDSOrSrcDSTab=lbl_dst,
+                              outputBounds=(x_min_tile, y_min_tile, x_max_tile, y_max_tile))
 
             if verbose:
                 print(filename + " tiles generated.")
