@@ -98,7 +98,7 @@ class SemSeg:
 
         if self.vector_path == "":
             raise Exception("The vector_path has not been set; run either the get_label_vectors "
-                            "or set_label_vectors first")
+                            "or set_label_vectors first.")
         elif len(os.listdir(self.vector_path)) == 0:
             raise Exception("The vector_path is empty.")
         elif [Path(x).stem for x in os.listdir(self.source_path)] != os.listdir(self.vector_path):
@@ -109,6 +109,29 @@ class SemSeg:
                 shapefiles = [x for x in filenames if "shp" in x]
                 if len(shapefiles) != 1:
                     raise Exception("A vector data directories must have exactly one shapefile.")
+
+    def check_rasters(self) -> None:
+        """Checks whether the label rasters have been generated, and match the names of the source imagery.
+
+        Returns:
+            None
+
+        Raises:
+            Exception: if raster_path has not been set;
+            Exception: if raster_path is empty;
+            Exception: if label raster names do not match source imagery names.
+        """
+
+        if self.raster_path == "":
+            raise Exception("The raster_path has not been set; run either the set_label_imagery "
+                            "or rasterize_vectors first.")
+        elif len(os.listdir(self.raster_path)) == 0:
+            raise Exception("The raster_path is empty.")
+        else:
+            source_names = [Path(x).stem for x in os.listdir(self.source_path)]
+            label_names = [Path(y).stem for y in os.listdir(self.raster_path)]
+            if source_names != label_names:
+                raise Exception("Source imagery names do not match label raster names.")
 
     def generate_tiles(self, drop_single_class_tiles: bool = True,
                        verbose: bool = True) -> None:
@@ -123,8 +146,8 @@ class SemSeg:
             None
         """
 
-        # check whether the vector imagery is in good shape
-        self.check_vectors()
+        # check whether the label rasters are in good shape
+        self.check_rasters()
 
         # get the tile dimensions
         dim = self.tile_dimension
