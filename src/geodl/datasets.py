@@ -20,7 +20,7 @@ class SemSeg:
 
         self.channel_description: str = channel_description
         self.dataset_description: str = dataset_description
-        self.raster__path = raster_path
+        self.raster_path = raster_path
         self.resampled_metadata: dict = {}
         self.source_image_names = os.listdir(source_path)
         self.source_metadata: dict = {}
@@ -110,15 +110,14 @@ class SemSeg:
                 if len(shapefiles) != 1:
                     raise Exception("A vector data directories must have exactly one shapefile.")
 
-    def generate_tiles(self, dimension: int,
-                       tile_path: str,
-                       drop_single_class_tiles: bool = True) -> None:
-        """Generates image tiles from the source and label imagery for use in model training.
+    def generate_tiles(self, drop_single_class_tiles: bool = True,
+                       verbose: bool = True) -> None:
+        """Generates image tiles from the source and label imagery for use in model training. I followed the process
+        given in the video https://www.youtube.com/watch?v=H5uQ85VXttg.
 
         Args:
-            dimension: the side-length in pixels of the square tiles;
-            tile_path: the directory in which to save the tiles;
-            drop_single_class_tiles: whether to drop tile pairs in which the labels have only a single value.
+            drop_single_class_tiles: whether to drop tile pairs in which the labels have only a single value;
+            verbose: print source filenames when complete, if true.
 
         Returns:
             None
@@ -127,7 +126,75 @@ class SemSeg:
         # check whether the vector imagery is in good shape
         self.check_vectors()
 
-        raise NotImplementedError("Method \'generate_tiles\' not implemented.")
+        # get the tile dimensions
+        dim = self.tile_dimension
+
+        # create sub-directories for the tiles
+        imagery_tiles_dir = os.path.join(self.tile_path, "imagery")
+        label_tiles_dir = os.path.join(self.tile_path, "labels")
+        if not os.path.isdir(imagery_tiles_dir):
+            os.mkdir(imagery_tiles_dir)
+        if not os.path.isdir(label_tiles_dir):
+            os.mkdir(label_tiles_dir)
+
+        # loop through each source/label raster pair
+        for filename in self.source_image_names:
+            with gdal.Open(os.path.join(self.source_path, filename)) as src_dst:
+                with gdal.Open(os.path.join(self.raster_path, filename)) as lbl_dst:
+                    # get resolution and upper-left coordinate
+                    x_min, x_res, _, y_max, _, y_res = src_dst.GetGeoTransform()
+
+                    # calculate projected lengths
+                    x_length = abs(x_res) * src_dst.RasterXSize
+                    y_length = abs(y_res) * src_dst.RasterYSize
+
+                    x_tile_length = x_length / dim
+                    y_tile_length = y_length / dim
+
+                    # calculate dimensions of tiles
+                    n_cols = int(x_length / self.tile_dimension)
+                    n_rows = int(y_length / self.tile_dimension)
+
+                    # calculate the divisions at which to cut the raster
+                    x_steps = [x_min + x_tile_length * i for i in range(n_cols + 1)]
+                    y_steps = [y_max - y_tile_length * i for i in range(n_rows + 1)]
+
+                    # calculate pixel divisions
+                    x_steps_px = [dim * i for i in range(n_cols + 1)]
+                    y_steps_px = [dim * i for i in range(n_rows + 1)]
+
+                    for i in range(n_cols):
+                        for j in range(n_rows):
+                            # check whether both labels exist in the label tile
+                            label_tile = lbl_dst.ReadAsArray(xoff=x_steps_px[i],
+                                                             yoff=y_steps_px[i],
+                                                             xsize=dim,
+                                                             ysize=dim)
+
+                            if drop_single_class_tiles and len(np.unique(label_tile) == 1):
+                                continue
+
+                            # define the extent of the tile
+                            x_min_tile = x_steps[i]
+                            x_max_tile = x_steps[i + 1]
+                            y_max_tile = y_steps[j]
+                            y_min_tile = y_steps[j + 1]
+
+                            # set the output paths
+                            tile_name = filename + "_R{row}C{col}.tif"
+                            imagery_tile_path = os.path.join(imagery_tiles_dir, tile_name)
+                            label_tile_path = os.path.join(label_tiles_dir, tile_name)
+
+                            gdal.Warp(destNameOrDestDS=imagery_tile_path,
+                                      srcDSOrSrcDSTab=src_dst,
+                                      outputBounds=(x_min_tile, y_min_tile, x_max_tile, y_max_tile))
+
+                            gdal.Warp(destNameOrDestDS=label_tile_path,
+                                      srcDSOrSrcDSTab=lbl_dst,
+                                      outputBounds=(x_min_tile, y_min_tile, x_max_tile, y_max_tile))
+
+            if verbose:
+                print(filename + " tiles generated.")
 
     def get_label_vectors(self, save_path: str,
                           osm_keys: list) -> None:
