@@ -120,7 +120,6 @@ class SemSeg:
             Exception: if raster_path has not been set;
             Exception: if raster_path is empty;
             Exception: if label raster names do not match source imagery names;
-            Exception: if source/raster geotransforms do not match for a particular pair;
             Exception: if source/raster width does not match for a particular pair;
             Exception: if source/raster height does not match for a particular pair;
             Exception: if source/raster projections do not match for a particular pair.
@@ -137,14 +136,15 @@ class SemSeg:
             for filename in self.source_image_names:
                 source_dataset = gdal.Open(os.path.join(self.source_path, filename))
                 label_dataset = gdal.Open(os.path.join(self.raster_path, filename))
-                if source_dataset.GetGeoTransform() != label_dataset.GetGeoTransform():
-                    raise Exception("Geotransforms do not match for " + filename + " pair.")
-                elif source_dataset.RasterXSize != label_dataset.RasterXSize:
+
+                # we use a numpy unittest to determine if the geotransforms are almost equal:
+                np.testing.assert_allclose(source_dataset.GetGeoTransform(), label_dataset.GetGeoTransform())
+
+                # check other metadata to see if it matches
+                if source_dataset.RasterXSize != label_dataset.RasterXSize:
                     raise Exception("Raster x-dimensions do not match for " + filename + " pair.")
                 elif source_dataset.RasterYSize != label_dataset.RasterYSize:
                     raise Exception("Raster y-dimensions do not match for " + filename + " pair.")
-                elif source_dataset.GetProjection() != label_dataset.GetProjection():
-                    raise Exception("Raster projections do not match for " + filename + " pair.")
 
     def generate_tiles(self, drop_single_class_tiles: bool = True,
                        verbose: bool = True) -> None:
