@@ -84,10 +84,10 @@ class TestGenerateTiles(BaseTestGeodl):
 
         self.dataset.generate_tiles()
 
-        self.image_tiles_list = os.listdir(os.path.join(self.tmp_tile_path, "images"))
+        self.image_tiles_list = os.listdir(os.path.join(self.tmp_tile_path, "imagery"))
         self.label_tiles_list = os.listdir(os.path.join(self.tmp_tile_path, "labels"))
 
-        self.image_tile = gdal.Open(os.path.join(self.tmp_tile_path, "images", self.image_tiles_list[0]))
+        self.image_tile = gdal.Open(os.path.join(self.tmp_tile_path, "imagery", self.image_tiles_list[0]))
         self.label_tile = gdal.Open(os.path.join(self.tmp_tile_path, "labels", self.label_tiles_list[0]))
 
     def test_save_location(self) -> None:
