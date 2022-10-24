@@ -35,6 +35,7 @@ class BaseTestGeodl(unittest.TestCase):
         cls.dataset = SemSeg(source_path=cls.test_image_path,
                              vector_path=cls.test_vector_path,
                              raster_path=cls.test_raster_path,
+                             tile_path=cls.tmp_tile_path,
                              tile_dimension=cls.tile_dimension,
                              dataset_description=cls.test_dataset_description,
                              channel_description=cls.test_channel_description)
@@ -79,6 +80,8 @@ class TestGenerateTiles(BaseTestGeodl):
     def setUp(self) -> None:
         """Sets up the test fixtures for the generate_tiles tests."""
 
+        if not os.path.isdir(self.tmp):
+            os.mkdir(self.tmp)
         if not os.path.isdir(self.tmp_tile_path):
             os.mkdir(self.tmp_tile_path)
 
