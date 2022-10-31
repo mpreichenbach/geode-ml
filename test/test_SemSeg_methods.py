@@ -3,6 +3,7 @@
 import numpy as np
 import os
 from osgeo import gdal
+import shutil
 from src.geodl.datasets import SemSeg
 import unittest
 
@@ -22,9 +23,19 @@ class BaseTestGeodl(unittest.TestCase):
     tmp_tile_path = "test/imagery/tmp/tiles/"
     source_imagery_names = []
     source_vector_names = []
+    dataset = SemSeg(source_path=test_image_path,
+                     vector_path=test_vector_path,
+                     raster_path=test_raster_path,
+                     tile_path=tmp_tile_path,
+                     tile_dimension=tile_dimension,
+                     dataset_description=test_dataset_description,
+                     channel_description=test_channel_description)
 
     @classmethod
     def setUpClass(cls) -> None:
+        if not os.path.isdir(cls.tmp_tile_path):
+            os.mkdir(cls.tmp_tile_path)
+
         n_source_images = len(os.listdir(cls.test_image_path))
         n_source_vectors = len(os.listdir(cls.test_vector_path))
 
@@ -43,52 +54,28 @@ class BaseTestGeodl(unittest.TestCase):
         if n_source_images != n_source_vectors:
             raise(Exception("Different numbers of source images and source vectors."))
 
+    @classmethod
+    def tearDownClass(cls) -> None:
+        # remote the generated tile folders
+        shutil.rmtree(cls.tmp_tile_path)
 
 
 class TestGenerateTiles(BaseTestGeodl):
     """Unit tests for the generate_tiles method of the SemSeg class."""
-    #
-    # @classmethod
-    # def setUpClass(cls) -> None:
-    #     # generate tiles
-    #     dataset = SemSeg(source_path=cls.test_image_path,
-    #                      vector_path=cls.test_vector_path,
-    #                      raster_path=cls.test_raster_path,
-    #                      tile_path=cls.tmp_tile_path,
-    #                      tile_dimension=cls.tile_dimension,
-    #                      dataset_description=cls.test_dataset_description,
-    #                      channel_description=cls.test_channel_description)
-    #
-    #     dataset.generate_tiles()
-    #
-    #     rgb_tile_path = os.path.join(cls.tmp_tile_path, "imagery")
-    #     lbl_tile_path = os.path.join(cls.tmp_tile_path, "labels")
-    #
-    #     cls.image_tiles_list = os.listdir(rgb_tile_path)
-    #     cls.label_tiles_list = os.listdir(lbl_tile_path)
-    #
-    #     cls.image_tile = gdal.Open(os.path.join(rgb_tile_path, os.listdir(rgb_tile_path)[0]))
-    #     cls.label_tile = gdal.Open(os.path.join(lbl_tile_path, os.listdir(lbl_tile_path)[0]))
 
-    def setUp(self) -> None:
-        dataset = SemSeg(source_path=self.test_image_path,
-                         vector_path=self.test_vector_path,
-                         raster_path=self.test_raster_path,
-                         tile_path=self.tmp_tile_path,
-                         tile_dimension=self.tile_dimension,
-                         dataset_description=self.test_dataset_description,
-                         channel_description=self.test_channel_description)
+    @classmethod
+    def setUpClass(cls) -> None:
+        # generate tiles
+        cls.dataset.generate_tiles()
 
-        dataset.generate_tiles()
+        rgb_tile_path = os.path.join(cls.tmp_tile_path, "imagery")
+        lbl_tile_path = os.path.join(cls.tmp_tile_path, "labels")
 
-        rgb_tile_path = os.path.join(self.tmp_tile_path, "imagery")
-        lbl_tile_path = os.path.join(self.tmp_tile_path, "labels")
+        cls.image_tiles_list = os.listdir(rgb_tile_path)
+        cls.label_tiles_list = os.listdir(lbl_tile_path)
 
-        self.image_tiles_list = os.listdir(rgb_tile_path)
-        self.label_tiles_list = os.listdir(lbl_tile_path)
-
-        self.image_tile = gdal.Open(os.path.join(rgb_tile_path, os.listdir(rgb_tile_path)[0]))
-        self.label_tile = gdal.Open(os.path.join(lbl_tile_path, os.listdir(lbl_tile_path)[0]))
+        cls.image_tile = gdal.Open(os.path.join(rgb_tile_path, os.listdir(rgb_tile_path)[0]))
+        cls.label_tile = gdal.Open(os.path.join(lbl_tile_path, os.listdir(lbl_tile_path)[0]))
 
     def test_save_location(self) -> None:
         """Test whether tiles are actually saved in the correct place."""
