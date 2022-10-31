@@ -188,12 +188,13 @@ class SemSeg:
             for i in range(len(x_steps) - 1):
                 x_start = x_steps[i]
                 for j in range(len(y_steps) - 1):
-                    y_start = y_steps[i]
-                    # check whether both labels exist in the label tile
-                    label_tile = lbl_dst.ReadAsArray(xoff=x_start,
-                                                     yoff=y_start,
+                    y_start = y_steps[j]
+                    # check whether both labels exist in the label tile. Note: gives a type error without float()
+                    label_tile = lbl_dst.ReadAsArray(xoff=float(x_start),
+                                                     yoff=float(y_start),
                                                      xsize=dim,
-                                                     ysize=dim)
+                                                     ysize=dim,
+                                                     band_list=[1])
 
                     if drop_single_class_tiles and len(np.unique(label_tile) == 1):
                         continue
@@ -216,7 +217,7 @@ class SemSeg:
             # flush data to disk
             src_dst = None
             lbl_dst = None
-            
+
             if verbose:
                 print(filename + " tiles generated.")
 
