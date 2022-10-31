@@ -179,58 +179,44 @@ class SemSeg:
             src_dst = gdal.Open(os.path.join(self.source_path, filename))
             lbl_dst = gdal.Open(os.path.join(self.raster_path, filename))
 
-            # get resolution and upper-left coordinate
-            x_min, x_res, _, y_max, _, y_res = src_dst.GetGeoTransform()
+            nx_tiles = int(src_dst.RasterXSize / self.tile_dimension)
+            ny_tiles = int(src_dst.RasterYSize / self.tile_dimension)
 
-            # calculate projected lengths
-            x_length = abs(x_res) * src_dst.RasterXSize
-            y_length = abs(y_res) * src_dst.RasterYSize
+            x_steps = np.arange(nx_tiles) * self.tile_dimension
+            y_steps = np.arange(ny_tiles) * self.tile_dimension
 
-            x_tile_length = x_length / dim
-            y_tile_length = y_length / dim
-
-            # calculate dimensions of tiles
-            n_cols = int(x_length / self.tile_dimension)
-            n_rows = int(y_length / self.tile_dimension)
-
-            # calculate the divisions at which to cut the raster
-            x_steps = [x_min + x_tile_length * i for i in range(n_cols + 1)]
-            y_steps = [y_max - y_tile_length * i for i in range(n_rows + 1)]
-
-            # calculate pixel divisions
-            x_steps_px = [dim * i for i in range(n_cols + 1)]
-            y_steps_px = [dim * i for i in range(n_rows + 1)]
-
-            for i in range(n_cols):
-                for j in range(n_rows):
+            for i in range(len(x_steps) - 1):
+                x_start = x_steps[i]
+                for j in range(len(y_steps) - 1):
+                    y_start = y_steps[i]
                     # check whether both labels exist in the label tile
-                    label_tile = lbl_dst.ReadAsArray(xoff=x_steps_px[i],
-                                                     yoff=y_steps_px[i],
+                    label_tile = lbl_dst.ReadAsArray(xoff=x_start,
+                                                     yoff=y_start,
                                                      xsize=dim,
                                                      ysize=dim)
 
                     if drop_single_class_tiles and len(np.unique(label_tile) == 1):
                         continue
 
-                    # define the extent of the tile
-                    x_min_tile = x_steps[i]
-                    x_max_tile = x_steps[i + 1]
-                    y_max_tile = y_steps[j]
-                    y_min_tile = y_steps[j + 1]
-
                     # set the output paths
                     tile_name = filename + "_R{row}C{col}.tif"
                     imagery_tile_path = os.path.join(imagery_tiles_dir, tile_name)
                     label_tile_path = os.path.join(label_tiles_dir, tile_name)
 
-                    gdal.Warp(destNameOrDestDS=imagery_tile_path,
-                              srcDSOrSrcDSTab=src_dst,
-                              outputBounds=(x_min_tile, y_min_tile, x_max_tile, y_max_tile))
+                    # create the output imagery tile
+                    gdal.Translate(destName=imagery_tile_path,
+                                   srcDS=src_dst,
+                                   srcWin=[x_start, y_start, dim, dim])
 
-                    gdal.Warp(destNameOrDestDS=label_tile_path,
-                              srcDSOrSrcDSTab=lbl_dst,
-                              outputBounds=(x_min_tile, y_min_tile, x_max_tile, y_max_tile))
+                    # create the output label tile
+                    gdal.Translate(destName=label_tile_path,
+                                   srcDS=lbl_dst,
+                                   srcWin=[x_start, y_start, dim, dim])
 
+            # flush data to disk
+            src_dst = None
+            lbl_dst = None
+            
             if verbose:
                 print(filename + " tiles generated.")
 
