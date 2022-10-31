@@ -3,7 +3,6 @@
 import numpy as np
 import os
 from osgeo import gdal
-import shutil
 from src.geodl.datasets import SemSeg
 import unittest
 
@@ -20,26 +19,14 @@ class BaseTestGeodl(unittest.TestCase):
     tmp_vector_path = "test/imagery/tmp/label_vectors"
     test_raster_path = "test/imagery/label_rasters"
     tmp_raster_path = "test/imagery/tmp/label_rasters"
-    tmp_tile_path = "test/imagery/tmp/tiles"
+    tmp_tile_path = "test/imagery/tmp/tiles/"
     source_imagery_names = []
     source_vector_names = []
-    n_source_images = len(os.listdir(test_image_path))
-    n_source_vectors = len(os.listdir(test_vector_path))
 
     @classmethod
     def setUpClass(cls) -> None:
-
-        if not os.path.isdir(cls.tmp):
-            os.mkdir(cls.tmp)
-
-        cls.dataset = SemSeg(source_path=cls.test_image_path,
-                             vector_path=cls.test_vector_path,
-                             raster_path=cls.test_raster_path,
-                             tile_path=cls.tmp_tile_path,
-                             tile_dimension=cls.tile_dimension,
-                             dataset_description=cls.test_dataset_description,
-                             channel_description=cls.test_channel_description)
-
+        n_source_images = len(os.listdir(cls.test_image_path))
+        n_source_vectors = len(os.listdir(cls.test_vector_path))
 
         # get the source imagery filenames
         for root, dirs, files in os.walk(cls.test_image_path):
@@ -48,50 +35,60 @@ class BaseTestGeodl(unittest.TestCase):
                     cls.source_imagery_names.append(file)
 
         # get the source vector filenames
-
         for root, dirs, files in os.walk(cls.test_vector_path):
             for file in files:
                 if file.endswith(".shp"):
                     cls.source_vector_names.append(file)
 
-        if cls.n_source_images != cls.n_source_vectors:
+        if n_source_images != n_source_vectors:
             raise(Exception("Different numbers of source images and source vectors."))
 
-    @classmethod
-    def tearDownClass(cls) -> None:
-        """Deletes all temporary directories."""
-
-        if os.path.isdir(cls.tmp_vector_path):
-            shutil.rmtree(cls.tmp_vector_path)
-
-        if os.path.isdir(cls.tmp_raster_path):
-            shutil.rmtree(cls.tmp_raster_path)
-
-        if os.path.isdir(cls.tmp_tile_path):
-            shutil.rmtree(cls.tmp_tile_path)
-
-        if os.path.isdir(cls.tmp):
-            shutil.rmtree(cls.tmp)
 
 
 class TestGenerateTiles(BaseTestGeodl):
     """Unit tests for the generate_tiles method of the SemSeg class."""
+    #
+    # @classmethod
+    # def setUpClass(cls) -> None:
+    #     # generate tiles
+    #     dataset = SemSeg(source_path=cls.test_image_path,
+    #                      vector_path=cls.test_vector_path,
+    #                      raster_path=cls.test_raster_path,
+    #                      tile_path=cls.tmp_tile_path,
+    #                      tile_dimension=cls.tile_dimension,
+    #                      dataset_description=cls.test_dataset_description,
+    #                      channel_description=cls.test_channel_description)
+    #
+    #     dataset.generate_tiles()
+    #
+    #     rgb_tile_path = os.path.join(cls.tmp_tile_path, "imagery")
+    #     lbl_tile_path = os.path.join(cls.tmp_tile_path, "labels")
+    #
+    #     cls.image_tiles_list = os.listdir(rgb_tile_path)
+    #     cls.label_tiles_list = os.listdir(lbl_tile_path)
+    #
+    #     cls.image_tile = gdal.Open(os.path.join(rgb_tile_path, os.listdir(rgb_tile_path)[0]))
+    #     cls.label_tile = gdal.Open(os.path.join(lbl_tile_path, os.listdir(lbl_tile_path)[0]))
 
     def setUp(self) -> None:
-        """Sets up the test fixtures for the generate_tiles tests."""
+        dataset = SemSeg(source_path=self.test_image_path,
+                         vector_path=self.test_vector_path,
+                         raster_path=self.test_raster_path,
+                         tile_path=self.tmp_tile_path,
+                         tile_dimension=self.tile_dimension,
+                         dataset_description=self.test_dataset_description,
+                         channel_description=self.test_channel_description)
 
-        if not os.path.isdir(self.tmp):
-            os.mkdir(self.tmp)
-        if not os.path.isdir(self.tmp_tile_path):
-            os.mkdir(self.tmp_tile_path)
+        dataset.generate_tiles()
 
-        self.dataset.generate_tiles()
+        rgb_tile_path = os.path.join(self.tmp_tile_path, "imagery")
+        lbl_tile_path = os.path.join(self.tmp_tile_path, "labels")
 
-        self.image_tiles_list = os.listdir(os.path.join(self.tmp_tile_path, "imagery"))
-        self.label_tiles_list = os.listdir(os.path.join(self.tmp_tile_path, "labels"))
+        self.image_tiles_list = os.listdir(rgb_tile_path)
+        self.label_tiles_list = os.listdir(lbl_tile_path)
 
-        self.image_tile = gdal.Open(os.path.join(self.tmp_tile_path, "imagery", self.image_tiles_list[0]))
-        self.label_tile = gdal.Open(os.path.join(self.tmp_tile_path, "labels", self.label_tiles_list[0]))
+        self.image_tile = gdal.Open(os.path.join(rgb_tile_path, os.listdir(rgb_tile_path)[0]))
+        self.label_tile = gdal.Open(os.path.join(lbl_tile_path, os.listdir(lbl_tile_path)[0]))
 
     def test_save_location(self) -> None:
         """Test whether tiles are actually saved in the correct place."""
@@ -121,6 +118,7 @@ class TestGenerateTiles(BaseTestGeodl):
 
         self.assertGreater(np.sum(self.image_tile.ReadAsArray()), 0)
         self.assertGreater(np.sum(self.label_tile.ReadAsArray()), 0)
+
 
 
 class TestGetLabelvectors(BaseTestGeodl):
@@ -235,4 +233,19 @@ class TestSetSourceImagery(BaseTestGeodl):
 
 
 if __name__ == "__main__":
+    test_channel_description = "RGB"
+    test_dataset_description = "An image over Bellingham, WA."
+    tile_dimension = 512
+    test_image_path = "test/imagery/source/"
+    test_osm_keys = ["building"]
+    test_vector_path = "test/imagery/label_vectors"
+    tmp = "test/imagery/tmp"
+    tmp_vector_path = "test/imagery/tmp/label_vectors"
+    test_raster_path = "test/imagery/label_rasters"
+    tmp_raster_path = "test/imagery/tmp/label_rasters"
+    tmp_tile_path = "test/imagery/tmp/tiles/"
+    source_imagery_names = []
+    source_vector_names = []
+
+
     unittest.main()

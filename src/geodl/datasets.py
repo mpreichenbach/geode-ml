@@ -28,6 +28,7 @@ class SemSeg:
         self.vector_path = vector_path
         self.tile_dimension = tile_dimension
         self.tile_path = tile_path
+        self.data_names = [os.path.splitext(x)[0] for x in os.listdir(source_path)]
 
         # check whether the source imagery exists
         self.check_source()
@@ -193,28 +194,31 @@ class SemSeg:
                     label_tile = lbl_dst.ReadAsArray(xoff=float(x_start),
                                                      yoff=float(y_start),
                                                      xsize=dim,
-                                                     ysize=dim,
-                                                     band_list=[1])
+                                                     ysize=dim)
 
-                    if drop_single_class_tiles and len(np.unique(label_tile) == 1):
+                    if drop_single_class_tiles and len(np.unique(label_tile)) == 1:
                         continue
 
                     # set the output paths
-                    tile_name = filename + "_R{row}C{col}.tif"
+                    tile_name = os.path.splitext(filename)[0] + "_R{row}C{col}.tif".format(row=i, col=j)
                     imagery_tile_path = os.path.join(imagery_tiles_dir, tile_name)
                     label_tile_path = os.path.join(label_tiles_dir, tile_name)
 
                     # create the output imagery tile
-                    gdal.Translate(destName=imagery_tile_path,
-                                   srcDS=src_dst,
-                                   srcWin=[x_start, y_start, dim, dim])
+                    im_tile = gdal.Translate(destName=imagery_tile_path,
+                                             srcDS=src_dst,
+                                             srcWin=[x_start, y_start, dim, dim])
 
                     # create the output label tile
-                    gdal.Translate(destName=label_tile_path,
-                                   srcDS=lbl_dst,
-                                   srcWin=[x_start, y_start, dim, dim])
+                    lbl_tile = gdal.Translate(destName=label_tile_path,
+                                              srcDS=lbl_dst,
+                                              srcWin=[x_start, y_start, dim, dim])
 
-            # flush data to disk
+                    # flush tile data to disk
+                    im_tile = None
+                    lbl_tile = None
+
+            # remove connections to the larger rasters
             src_dst = None
             lbl_dst = None
 
