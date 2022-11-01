@@ -271,7 +271,7 @@ class SemSeg:
             None
         """
 
-        raise NotImplementedError("Method \'set_labels\' not implemented.")
+        self.raster_path = raster_path
 
     def set_label_vectors(self, vector_path) -> None:
         """Defines the vector data, and provides a manual alternative to the get_label_vectors method; e.g., this method
@@ -285,4 +285,3 @@ class SemSeg:
         """
 
         self.vector_path = vector_path
-        
