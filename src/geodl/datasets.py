@@ -285,14 +285,3 @@ class SemSeg:
         """
 
         raise NotImplementedError("Method \'set_labels\' not implemented.")
-
-    def set_source_imagery(self, source_path: str) -> None:
-        """Defines the source imagery for the dataset; should be run before any other methods.
-
-        Args:
-            source_path: the directory containing tifs of the source imagery.
-
-        Returns:
-            None
-        """
-
