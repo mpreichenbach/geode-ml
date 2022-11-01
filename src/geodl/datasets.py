@@ -261,6 +261,20 @@ class SemSeg:
 
         raise NotImplementedError("Method \'rasterize_vectors\' not implemented.")
 
+    def resample_source(self, target_resolution: float,
+                        method: str) -> None:
+        """Resamples the source imagery to a different spatial resolution.
+        
+        Args:
+            target_resolution: the resolution to resample to;
+            method: the resampling method; see gdal_translate documentation for options.
+
+        Returns:
+            None
+        """
+
+        raise NotImplementedError("Method \'resample_source\' not implemented.")
+
     def set_label_imagery(self, raster_path: str) -> None:
         """Defines the label imagery to use for other methods, if not already created by rasterize_vectors.
 
