@@ -284,4 +284,5 @@ class SemSeg:
             None
         """
 
-        raise NotImplementedError("Method \'set_labels\' not implemented.")
+        self.vector_path = vector_path
+        
