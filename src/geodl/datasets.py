@@ -2,7 +2,7 @@
 
 import numpy as np
 import os
-from osgeo import gdal, ogr
+from osgeo import gdal, ogr, osr
 from pathlib import Path
 
 
@@ -18,7 +18,8 @@ class SemSeg:
                  dataset_description: str = "",
                  channel_description: str = "",
                  no_data_value: int = 0,
-                 burn_value: int = 1):
+                 burn_value: int = 1,
+                 osm_key: str = "building"):
 
         self.channel_description: str = channel_description
         self.dataset_description: str = dataset_description
@@ -231,8 +232,7 @@ class SemSeg:
             if verbose:
                 print(filename + " tiles generated.")
 
-    def get_label_vectors(self, save_path: str,
-                          osm_keys: list) -> None:
+    def get_label_vectors(self, osm_keys: list) -> None:
         """Queries the OpenStreetMaps API and downloads vector data over the source imagery.
 
         Args:
@@ -246,7 +246,38 @@ class SemSeg:
         # check whether the source imagery directory has been set and is nonempty.
         self.check_vectors()
 
-        raise NotImplementedError("Method \'get_label_polygons\' not implemented.")
+        # loop through the source files
+        for filename in self.data_names:
+            # open the source raster
+            rgb = gdal.Open(os.path.join(self.source_path, filename + ".tif"))
+
+            # create folder to hold polygon data
+            if not os.path.isdir(os.path.join(self.vector_path, filename)):
+                os.mkdir(os.path.join(self.vector_path, filename))
+
+            # extract bounding box coordinates for OSM query
+            ulx, xres, _, uly, _, yres = rgb.GetGeoTransform()
+            lrx = ulx + (rgb.RasterXSize * xres)
+            lry = uly + (rgb.RasterYSize * yres)
+
+            # define the source and target projections to enable conversion to lat/long coordinates
+            source = osr.SpatialReference()
+            source.ImportFromWkt(rgb.GetProjection())
+
+            target = osr.SpatialReference()
+            target.ImportFromEPSG(4326)
+
+            transform = osr.CoordinateTransformation(source, target)
+
+            # get bounding box coordinates in lat/long
+            north, west, _ = list(transform.TransformPoint(ulx, uly))
+            south, east, _ = list(transform.TransformPoint(lrx, lry))
+
+            
+
+
+
+        # raise NotImplementedError("Method \'get_label_polygons\' not implemented.")
 
     def rasterize_vectors(self) -> None:
         """Generates label rasters from the vector data, with dimensions matching the source imagery.
