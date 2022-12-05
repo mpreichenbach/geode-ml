@@ -17,8 +17,8 @@ class SemSeg:
                  tile_path: str = "",
                  dataset_description: str = "",
                  channel_description: str = "",
-                 no_data_value = 0,
-                 burn_value = 1):
+                 no_data_value: int = 0,
+                 burn_value: int = 1):
 
         self.channel_description: str = channel_description
         self.dataset_description: str = dataset_description
@@ -173,6 +173,8 @@ class SemSeg:
         # create sub-directories for the tiles
         imagery_tiles_dir = os.path.join(self.tile_path, "imagery")
         label_tiles_dir = os.path.join(self.tile_path, "labels")
+        if not (os.path.isdir(self.tile_path)):
+            os.mkdir(self.tile_path)
         if not os.path.isdir(imagery_tiles_dir):
             os.mkdir(imagery_tiles_dir)
         if not os.path.isdir(label_tiles_dir):
@@ -249,10 +251,6 @@ class SemSeg:
     def rasterize_vectors(self) -> None:
         """Generates label rasters from the vector data, with dimensions matching the source imagery.
 
-        Args:
-            burn_value: the value to assign the positive instances of the land-cover type;
-            no_data_value: the value to assign the negative instances of the land-cover type.
-
         Returns:
             None
         """
@@ -261,7 +259,7 @@ class SemSeg:
         self.check_vectors()
 
         # loop through the shapefiles in the vectors directory
-        for filename in self.source_image_names:
+        for filename in self.data_names:
             # open the source/polygon pair
             rgb = gdal.Open(os.path.join(self.source_path, filename + ".tif"))
             polygons = ogr.Open(os.path.join(self.vector_path, filename, filename + ".shp"))
@@ -291,8 +289,9 @@ class SemSeg:
 
             # rasterize the polygon layer
             gdal.RasterizeLayer(output_raster,
-                                [self.burn_value],
-                                polygon_layer)
+                                [1],
+                                polygon_layer,
+                                burn_values=[self.burn_value])
 
             # write to the output file
             output_raster = None
