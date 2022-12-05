@@ -1,6 +1,7 @@
 # utils.py
 
 from osgeo import gdal, ogr
+from src.geodl.datasets import SemSeg
 
 
 def rasterize(vector_dataset: ogr.DataSource,
@@ -9,9 +10,9 @@ def rasterize(vector_dataset: ogr.DataSource,
 
     raise NotImplementedError("Method \'rasterize\' not implemented.")
 
-def resample(raster: gdal.Dataset,
-             method: str,
-             target_resolution: float) -> gdal.Dataset:
+def resample_dataset(raster: gdal.Dataset,
+                     method: str,
+                     target_resolution: tuple) -> SemSeg:
 
     raise NotImplementedError("Method \'resample\' not implemented.")
 

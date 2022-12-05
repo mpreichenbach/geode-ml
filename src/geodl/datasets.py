@@ -2,7 +2,7 @@
 
 import numpy as np
 import os
-from osgeo import gdal
+from osgeo import gdal, ogr
 from pathlib import Path
 
 
@@ -16,7 +16,9 @@ class SemSeg:
                  tile_dimension: int = 0,
                  tile_path: str = "",
                  dataset_description: str = "",
-                 channel_description: str = ""):
+                 channel_description: str = "",
+                 no_data_value = 0,
+                 burn_value = 1):
 
         self.channel_description: str = channel_description
         self.dataset_description: str = dataset_description
@@ -29,6 +31,8 @@ class SemSeg:
         self.tile_dimension = tile_dimension
         self.tile_path = tile_path
         self.data_names = [os.path.splitext(x)[0] for x in os.listdir(source_path)]
+        self.no_data_value = no_data_value
+        self.burn_value = burn_value
 
         # check whether the source imagery exists
         self.check_source()
@@ -242,13 +246,10 @@ class SemSeg:
 
         raise NotImplementedError("Method \'get_label_polygons\' not implemented.")
 
-    def rasterize_vectors(self, out_path: str,
-                          burn_value: int = 1,
-                          no_data_value: int = 0) -> None:
+    def rasterize_vectors(self) -> None:
         """Generates label rasters from the vector data, with dimensions matching the source imagery.
 
         Args:
-            out_path: the directory in which to save the label rasters;
             burn_value: the value to assign the positive instances of the land-cover type;
             no_data_value: the value to assign the negative instances of the land-cover type.
 
@@ -259,21 +260,42 @@ class SemSeg:
         # check whether vector data has been set and matches the names in the source imagery
         self.check_vectors()
 
-        raise NotImplementedError("Method \'rasterize_vectors\' not implemented.")
+        # loop through the shapefiles in the vectors directory
+        for filename in self.source_image_names:
+            # open the source/polygon pair
+            rgb = gdal.Open(os.path.join(self.source_path, filename + ".tif"))
+            polygons = ogr.Open(os.path.join(self.vector_path, filename, filename + ".shp"))
 
-    def resample_source(self, target_resolution: float,
-                        method: str) -> None:
-        """Resamples the source imagery to a different spatial resolution.
-        
-        Args:
-            target_resolution: the resolution to resample to;
-            method: the resampling method; see gdal_translate documentation for options.
+            # get geospatial metadata
+            geo_transform = rgb.GetGeoTransform()
+            projection = rgb.GetProjection()
 
-        Returns:
-            None
-        """
+            # get raster dimensions
+            x_res = rgb.RasterXSize
+            y_res = rgb.RasterYSize
 
-        raise NotImplementedError("Method \'resample_source\' not implemented.")
+            # get the polygon layer to write
+            polygon_layer = polygons.GetLayer()
+
+            # create output raster dataset
+            if not os.path.isdir(self.raster_path):
+                os.mkdir(self.raster_path)
+
+            output_path = os.path.join(self.raster_path, filename + ".tif")
+            output_raster = gdal.GetDriverByName('GTiff').Create(output_path, x_res, y_res, 1, gdal.GDT_Byte)
+            output_raster.SetGeoTransform(geo_transform)
+            output_raster.SetProjection(projection)
+            band = output_raster.GetRasterBand(1)
+            band.SetNoDataValue(self.no_data_value)
+            band.FlushCache()
+
+            # rasterize the polygon layer
+            gdal.RasterizeLayer(output_raster,
+                                [self.burn_value],
+                                polygon_layer)
+
+            # write to the output file
+            output_raster = None
 
     def set_label_imagery(self, raster_path: str) -> None:
         """Defines the label imagery to use for other methods, if not already created by rasterize_vectors.
@@ -286,6 +308,7 @@ class SemSeg:
         """
 
         self.raster_path = raster_path
+        self.check_rasters()
 
     def set_label_vectors(self, vector_path) -> None:
         """Defines the vector data, and provides a manual alternative to the get_label_vectors method; e.g., this method
@@ -299,3 +322,4 @@ class SemSeg:
         """
 
         self.vector_path = vector_path
+        self.check_vectors()
