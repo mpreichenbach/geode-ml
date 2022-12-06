@@ -1,4 +1,4 @@
 /.idea/
-/.test/
+/.test/__pycache__
 /src/geodl/.idea/
 /src/geodl/__pycache__/
