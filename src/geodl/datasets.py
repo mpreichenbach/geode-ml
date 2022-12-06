@@ -273,7 +273,7 @@ class SemSeg:
             north, west, _ = list(transform.TransformPoint(ulx, uly))
             south, east, _ = list(transform.TransformPoint(lrx, lry))
 
-            
+
 
 
 
