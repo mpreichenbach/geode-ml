@@ -11,7 +11,6 @@ def tile_raster_pair(rgb: gdal.Dataset,
                      imagery_tiles_dir: str,
                      label_tiles_dir: str,
                      filename: str):
-
     """Generates tiles for training data from an rgb/label pair.
 
     Args:
@@ -87,6 +86,7 @@ def tile_raster_pair(rgb: gdal.Dataset,
 def get_osm_layer(rgb: gdal.Dataset,
                   output_path: str,
                   filename: str):
+    """Documentation forthcoming for this function."""
 
     # create folder to hold polygon data
     if not os.path.isdir(os.path.join(output_path, filename)):
@@ -115,6 +115,17 @@ def rasterize_polygon_layer(rgb: gdal.Dataset,
                             output_path: str,
                             burn_value: int = 1,
                             no_data_value: int = 0) -> None:
+    """Converts polygon vector layers into rasters of the same size as the source RGB dataset.
+
+    Args:
+        rgb: the dataset of RGB imagery;
+        polygons: the dataset of the associated polygon layer;
+        output_path: filepath for the output dataset;
+        burn_value: the value to write for feature pixels;
+        no_data_value: the value to write for non-feature pixels.
+
+    Returns:
+        None"""
 
     # get geospatial metadata
     geo_transform = rgb.GetGeoTransform()
@@ -128,11 +139,12 @@ def rasterize_polygon_layer(rgb: gdal.Dataset,
     polygon_layer = polygons.GetLayer()
 
     # create output raster dataset
-    if not os.path.isdir(output_path):
-        os.mkdir(output_path)
-
     output_path = os.path.join(output_path)
-    output_raster = gdal.GetDriverByName('GTiff').Create(output_path, x_res, y_res, 1, gdal.GDT_Byte)
+    output_raster = gdal.GetDriverByName('GTiff').Create(output_path,
+                                                         x_res,
+                                                         y_res,
+                                                         1,
+                                                         gdal.GDT_Byte)
     output_raster.SetGeoTransform(geo_transform)
     output_raster.SetProjection(projection)
     band = output_raster.GetRasterBand(1)
