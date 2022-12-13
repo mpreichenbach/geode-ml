@@ -243,10 +243,21 @@ class SemSeg:
                 print(filename + " rasterized.")
 
     def resample_source_imagery(self, output_path: str,
-                                resample_algorithm: str,
                                 target_resolution: tuple,
+                                resample_algorithm: str="cubic",
                                 replace_source_dataset: bool = True,
                                 verbose=True) -> None:
+        """Resamples the source imagery to the target resolution.
+
+        Args:
+            output_path: the directory to hold the resampled imagery;
+            target_resolution: a tuple of the form (xRes, yRes) for target resolutions, in units of meters;
+            resample_algorithm: the method used for resampling (see gdalwarp documentation for more options);
+            replace_source_dataset: whether to use the resampled imagery as the new source imagery;
+            verbose: whether to print progress to the console.
+
+        Returns:
+            None"""
 
         # create directory if it doesn't already exist
         if not os.path.isdir(output_path):
