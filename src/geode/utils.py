@@ -51,14 +51,27 @@ def tile_raster_pair(rgb: gdal.Dataset,
         x_start = x_steps[i]
         for j in range(len(y_steps) - 1):
             y_start = y_steps[j]
-            # check whether both labels exist in the label tile. Note: gives a type error without float()
-            label_tile = labels.ReadAsArray(xoff=float(x_start),
-                                            yoff=float(y_start),
-                                            xsize=tile_dimension,
-                                            ysize=tile_dimension)
 
-            if drop_single_class_tiles and len(np.unique(label_tile)) == 1:
+            # skip pairs where the source has a NoData pixel. Note: gives a type error without float()
+            rgb_tile = rgb.ReadAsArray(xoff=float(x_start),
+                                       yoff=float(y_start),
+                                       xsize=tile_dimension,
+                                       ysize=tile_dimension)
+
+            band_sum = np.sum(rgb_tile, axis=-1)
+
+            if 0 in np.unique(band_sum):
                 continue
+
+            # skip pairs where label tile doesn't have both values
+            if drop_single_class_tiles:
+                label_tile = labels.ReadAsArray(xoff=float(x_start),
+                                                yoff=float(y_start),
+                                                xsize=tile_dimension,
+                                                ysize=tile_dimension)
+
+                if len(np.unique(label_tile)) == 1:
+                    continue
 
             # set the output paths
             tile_name = os.path.splitext(filename)[0] + "_R{row}C{col}.tif".format(row=i, col=j)

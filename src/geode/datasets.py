@@ -24,7 +24,6 @@ class SemanticSegmentation:
         self.channel_description: str = channel_description
         self.dataset_description: str = dataset_description
         self.raster_path = raster_path
-        self.resampled_metadata: dict = {}
         self.source_image_names = os.listdir(source_path)
         self.source_metadata: dict = {}
         self.source_path = source_path
@@ -74,9 +73,9 @@ class SemanticSegmentation:
         else:
             for directory in os.listdir(self.vector_path):
                 filenames = os.listdir(os.path.join(self.vector_path, directory))
-                shapefiles = [x for x in filenames if "shp" in x]
+                shapefiles = [x for x in filenames if os.path.splitext(x)[1] == ".shp"]
                 if len(shapefiles) != 1:
-                    raise Exception("A vector data directories must have exactly one shapefile.")
+                    raise Exception("The vector data directories must have exactly one shapefile.")
 
     def check_rasters(self) -> None:
         """Checks whether the label rasters have been generated, and match the names of the source imagery.
