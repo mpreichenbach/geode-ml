@@ -1,10 +1,9 @@
 # datasets.py
 
-from geode.utils import rasterize_polygon_layer, tile_raster_pair
+from geode.utils import rasterize_polygon_layer, tile_raster_pair, resample_dataset
 import numpy as np
 import os
 from osgeo import gdal, ogr, osr
-from pathlib import Path
 
 
 class SemSeg:
@@ -108,7 +107,7 @@ class SemSeg:
                             "or set_label_vectors first.")
         elif len(os.listdir(self.vector_path)) == 0:
             raise Exception("The vector_path is empty.")
-        elif [Path(x).stem for x in os.listdir(self.source_path)] != os.listdir(self.vector_path):
+        elif [os.path.splitext(x)[0] for x in os.listdir(self.source_path)] != os.listdir(self.vector_path):
             raise Exception("Source imagery names do not match vector data names.")
         else:
             for directory in os.listdir(self.vector_path):
@@ -212,7 +211,7 @@ class SemSeg:
 
         # raise NotImplementedError("Method \'get_label_polygons\' not implemented.")
 
-    def rasterize_polygon_layers(self) -> None:
+    def rasterize_polygon_layers(self, verbose=True) -> None:
         """Generates label rasters from the vector data, with dimensions matching the source imagery.
 
         Returns:
@@ -224,9 +223,10 @@ class SemSeg:
 
         # loop through the shapefiles in the vectors directory
         for filename in self.data_names:
+            fname = os.path.splitext(filename)[0]
             # open the source/polygon pair
             rgb = gdal.Open(os.path.join(self.source_path, filename + ".tif"))
-            polygons = ogr.Open(os.path.join(self.vector_path, filename, filename + ".shp"))
+            polygons = ogr.Open(os.path.join(self.vector_path, fname, fname + ".shp"))
 
             # set the output path
             output_path = os.path.join(self.raster_path, filename + ".tif")
@@ -239,20 +239,28 @@ class SemSeg:
                                     burn_value=self.burn_value,
                                     no_data_value=self.no_data_value)
 
+            if verbose:
+                print(filename + " rasterized.")
+
     def resample_source_imagery(self, output_path: str,
-                                method: str,
+                                resample_algorithm: str,
                                 target_resolution: tuple,
-                                replace_source_dataset: bool = True) -> None:
+                                replace_source_dataset: bool = True,
+                                verbose=True) -> None:
 
         # create directory if it doesn't already exist
         if not os.path.isdir(output_path):
             os.mkdir(output_path)
 
+        # resample the rasters
         for filename in self.source_image_names:
-            input_path = os.path.join(self.source_path, filename)
-            rgb = gdal.Open(input_path)
+            resample_dataset(input_path=os.path.join(self.source_path, filename),
+                             output_path=output_path,
+                             resample_algorithm=resample_algorithm,
+                             target_resolution=target_resolution)
 
-            # resample the raster
+            if verbose:
+                print(filename + " resampled to " + str(target_resolution) + ".")
 
         # change dataset's source imagery if requested
         if replace_source_dataset:
