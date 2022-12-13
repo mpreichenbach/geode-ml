@@ -5,6 +5,35 @@ import os
 from osgeo import gdal, ogr, osr
 from pathlib import Path
 
+def tile_raster_pair():
+    
+
+def get_osm_layer(rgb: gdal.Dataset,
+                  output_path: str,
+                  filename: str):
+
+    # create folder to hold polygon data
+    if not os.path.isdir(os.path.join(output_path, filename)):
+        os.mkdir(os.path.join(output_path, filename))
+
+    # extract bounding box coordinates for OSM query
+    ulx, xres, _, uly, _, yres = rgb.GetGeoTransform()
+    lrx = ulx + (rgb.RasterXSize * xres)
+    lry = uly + (rgb.RasterYSize * yres)
+
+    # define the source and target projections to enable conversion to lat/long coordinates
+    source = osr.SpatialReference()
+    source.ImportFromWkt(rgb.GetProjection())
+
+    target = osr.SpatialReference()
+    target.ImportFromEPSG(4326)
+
+    transform = osr.CoordinateTransformation(source, target)
+
+    # get bounding box coordinates in lat/long
+    north, west, _ = list(transform.TransformPoint(ulx, uly))
+    south, east, _ = list(transform.TransformPoint(lrx, lry))
+
 def rasterize_polygon_layer(rgb: gdal.Dataset,
                             polygons: ogr.DataSource,
                             output_path: str,
@@ -46,7 +75,7 @@ def rasterize_polygon_layer(rgb: gdal.Dataset,
 
 def resample_dataset(raster: gdal.Dataset,
                      method: str,
-                     target_resolution: tuple) -> SemSeg:
+                     target_resolution: tuple) -> None:
 
     raise NotImplementedError("Method \'resample\' not implemented.")
 
