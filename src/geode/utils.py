@@ -7,7 +7,7 @@ from pathlib import Path
 
 def rasterize_polygon_layer(rgb: gdal.Dataset,
                             polygons: ogr.DataSource,
-                            raster_path: str,
+                            output_path: str,
                             burn_value: int = 1,
                             no_data_value: int = 0) -> None:
 
@@ -23,10 +23,10 @@ def rasterize_polygon_layer(rgb: gdal.Dataset,
     polygon_layer = polygons.GetLayer()
 
     # create output raster dataset
-    if not os.path.isdir(raster_path):
-        os.mkdir(raster_path)
+    if not os.path.isdir(output_path):
+        os.mkdir(output_path)
 
-    output_path = os.path.join(raster_path)
+    output_path = os.path.join(output_path)
     output_raster = gdal.GetDriverByName('GTiff').Create(output_path, x_res, y_res, 1, gdal.GDT_Byte)
     output_raster.SetGeoTransform(geo_transform)
     output_raster.SetProjection(projection)
@@ -42,7 +42,7 @@ def rasterize_polygon_layer(rgb: gdal.Dataset,
 
     # write to the output file
     output_raster = None
-    
+
 
 def resample_dataset(raster: gdal.Dataset,
                      method: str,

@@ -1,5 +1,6 @@
 # datasets.py
 
+from geode.utils import rasterize_polygon_layer
 import numpy as np
 import os
 from osgeo import gdal, ogr, osr
@@ -279,7 +280,7 @@ class SemSeg:
 
         # raise NotImplementedError("Method \'get_label_polygons\' not implemented.")
 
-    def rasterize_vectors(self) -> None:
+    def rasterize_polygon_layers(self) -> None:
         """Generates label rasters from the vector data, with dimensions matching the source imagery.
 
         Returns:
@@ -295,37 +296,16 @@ class SemSeg:
             rgb = gdal.Open(os.path.join(self.source_path, filename + ".tif"))
             polygons = ogr.Open(os.path.join(self.vector_path, filename, filename + ".shp"))
 
-            # get geospatial metadata
-            geo_transform = rgb.GetGeoTransform()
-            projection = rgb.GetProjection()
-
-            # get raster dimensions
-            x_res = rgb.RasterXSize
-            y_res = rgb.RasterYSize
-
-            # get the polygon layer to write
-            polygon_layer = polygons.GetLayer()
-
-            # create output raster dataset
-            if not os.path.isdir(self.raster_path):
-                os.mkdir(self.raster_path)
-
+            # set the output path
             output_path = os.path.join(self.raster_path, filename + ".tif")
-            output_raster = gdal.GetDriverByName('GTiff').Create(output_path, x_res, y_res, 1, gdal.GDT_Byte)
-            output_raster.SetGeoTransform(geo_transform)
-            output_raster.SetProjection(projection)
-            band = output_raster.GetRasterBand(1)
-            band.SetNoDataValue(self.no_data_value)
-            band.FlushCache()
 
             # rasterize the polygon layer
-            gdal.RasterizeLayer(output_raster,
-                                [1],
-                                polygon_layer,
-                                burn_values=[self.burn_value])
 
-            # write to the output file
-            output_raster = None
+            rasterize_polygon_layer(rgb=rgb,
+                                    polygons=polygons,
+                                    output_path=output_path,
+                                    burn_value=self.burn_value,
+                                    no_data_value=self.no_data_value)
 
     def set_label_imagery(self, raster_path: str) -> None:
         """Defines the label imagery to use for other methods, if not already created by rasterize_vectors.
