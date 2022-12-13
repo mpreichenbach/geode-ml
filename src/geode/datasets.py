@@ -3,10 +3,10 @@
 from geode import utils
 import numpy as np
 import os
-from osgeo import gdal, ogr, osr
+from osgeo import gdal, ogr
 
 
-class SemSeg:
+class SemanticSegmentation:
     """Defines a semantic segmentation dataset to be used in deep-learning models."""
 
     def __init__(self,
@@ -277,7 +277,7 @@ class SemSeg:
         # resample the rasters
         for filename in self.source_image_names:
             utils.resample_dataset(input_path=os.path.join(self.source_path, filename),
-                                   output_path=output_path,
+                                   output_path=os.path.join(output_path, filename),
                                    resample_algorithm=resample_algorithm,
                                    target_resolution=target_resolution)
 
