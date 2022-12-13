@@ -1,6 +1,6 @@
 # datasets.py
 
-from geode.utils import rasterize_polygon_layer, tile_raster_pair, resample_dataset
+from geode import utils
 import numpy as np
 import os
 from osgeo import gdal, ogr, osr
@@ -185,13 +185,13 @@ class SemSeg:
             labels = gdal.Open(os.path.join(self.raster_path, filename))
 
             # pull out tiles from imagery
-            tile_raster_pair(rgb=rgb,
-                             labels=labels,
-                             tile_dimension=self.tile_dimension,
-                             drop_single_class_tiles=drop_single_class_tiles,
-                             imagery_tiles_dir=imagery_tiles_dir,
-                             label_tiles_dir=label_tiles_dir,
-                             filename=filename)
+            utils.tile_raster_pair(rgb=rgb,
+                                   labels=labels,
+                                   tile_dimension=self.tile_dimension,
+                                   drop_single_class_tiles=drop_single_class_tiles,
+                                   imagery_tiles_dir=imagery_tiles_dir,
+                                   label_tiles_dir=label_tiles_dir,
+                                   filename=filename)
 
             if verbose:
                 print(filename + " tiles generated.")
@@ -233,11 +233,11 @@ class SemSeg:
 
             # rasterize the polygon layer
 
-            rasterize_polygon_layer(rgb=rgb,
-                                    polygons=polygons,
-                                    output_path=output_path,
-                                    burn_value=self.burn_value,
-                                    no_data_value=self.no_data_value)
+            utils.rasterize_polygon_layer(rgb=rgb,
+                                          polygons=polygons,
+                                          output_path=output_path,
+                                          burn_value=self.burn_value,
+                                          no_data_value=self.no_data_value)
 
             if verbose:
                 print(filename + " rasterized.")
@@ -254,10 +254,10 @@ class SemSeg:
 
         # resample the rasters
         for filename in self.source_image_names:
-            resample_dataset(input_path=os.path.join(self.source_path, filename),
-                             output_path=output_path,
-                             resample_algorithm=resample_algorithm,
-                             target_resolution=target_resolution)
+            utils.resample_dataset(input_path=os.path.join(self.source_path, filename),
+                                   output_path=output_path,
+                                   resample_algorithm=resample_algorithm,
+                                   target_resolution=target_resolution)
 
             if verbose:
                 print(filename + " resampled to " + str(target_resolution) + ".")
