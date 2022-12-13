@@ -2,7 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/.idea/geodl.iml" filepath="$PROJECT_DIR$/.idea/geodl.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/geode.iml" filepath="$PROJECT_DIR$/.idea/geode.iml" />
     </modules>
   </component>
 </project>

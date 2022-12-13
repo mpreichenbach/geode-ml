@@ -232,7 +232,7 @@ class SemSeg:
             if verbose:
                 print(filename + " tiles generated.")
 
-    def get_label_vectors(self, osm_keys: list) -> None:
+    def get_label_vectors(self) -> None:
         """Queries the OpenStreetMaps API and downloads vector data over the source imagery.
 
         Args:

@@ -1,14 +1,48 @@
 # utils.py
 
-from osgeo import gdal, ogr
-from src.geodl.datasets import SemSeg
+import numpy as np
+import os
+from osgeo import gdal, ogr, osr
+from pathlib import Path
 
+def rasterize_polygon_layer(rgb: gdal.Dataset,
+                            polygons: ogr.DataSource,
+                            raster_path: str,
+                            burn_value: int = 1,
+                            no_data_value: int = 0) -> None:
 
-def rasterize(vector_dataset: ogr.DataSource,
-              burn_value: int = 1,
-              no_data_value: int = 0) -> gdal.Dataset:
+    # get geospatial metadata
+    geo_transform = rgb.GetGeoTransform()
+    projection = rgb.GetProjection()
 
-    raise NotImplementedError("Method \'rasterize\' not implemented.")
+    # get raster dimensions
+    x_res = rgb.RasterXSize
+    y_res = rgb.RasterYSize
+
+    # get the polygon layer to write
+    polygon_layer = polygons.GetLayer()
+
+    # create output raster dataset
+    if not os.path.isdir(raster_path):
+        os.mkdir(raster_path)
+
+    output_path = os.path.join(raster_path)
+    output_raster = gdal.GetDriverByName('GTiff').Create(output_path, x_res, y_res, 1, gdal.GDT_Byte)
+    output_raster.SetGeoTransform(geo_transform)
+    output_raster.SetProjection(projection)
+    band = output_raster.GetRasterBand(1)
+    band.SetNoDataValue(no_data_value)
+    band.FlushCache()
+
+    # rasterize the polygon layer
+    gdal.RasterizeLayer(output_raster,
+                        [1],
+                        polygon_layer,
+                        burn_values=[burn_value])
+
+    # write to the output file
+    output_raster = None
+    
 
 def resample_dataset(raster: gdal.Dataset,
                      method: str,
