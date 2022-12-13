@@ -35,44 +35,6 @@ class SemSeg:
         self.no_data_value = no_data_value
         self.burn_value = burn_value
 
-        # check whether the source imagery exists
-        self.check_source()
-
-        # loop through the source imagery and extract relevant metadata
-        for filename in self.source_image_names:
-            dst = gdal.Open(os.path.join(self.source_path, filename))
-
-            # set metadata fields from the gdal.Dataset object
-            metadata_dict = {}
-            gt = dst.GetGeoTransform()
-            x_dim = dst.RasterXSize
-            y_dim = dst.RasterYSize
-
-            metadata_dict["band_counts"] = dst.RasterCount
-            metadata_dict["dimensions"] = (x_dim, y_dim)
-            metadata_dict["resolution"] = (gt[1], gt[5])
-            metadata_dict["raster_extent"] = np.abs(x_dim * gt[1] * y_dim * gt[5])
-
-            # calculate the "data_extent", or the raster_extent minus the area of nodata pixels. First, compute the
-            # number of nodata pixels
-            n_nodata_pixels = np.sum(np.where(np.sum(dst.ReadAsArray()) == 0, 1, 0))
-
-            # then compute the area of these pixels
-            nodata_area = np.abs(n_nodata_pixels * x_dim * y_dim)
-
-            # set the data_extent in the metadata_dictionary
-            metadata_dict["data_extent"] = metadata_dict["raster_extent"] - nodata_area
-
-            if "metre" in dst.GetProjection():
-                metadata_dict["units"] = "metre"
-            else:
-                raise(Exception("The raster " + filename + " may not be in metres."))
-
-            self.source_metadata[filename] = metadata_dict
-
-            # close the gdal.Dataset object
-            dst = None
-
     def check_source(self) -> None:
         """Checks whether the source imagery has been set, and is nonempty.
 
@@ -152,6 +114,51 @@ class SemSeg:
                 elif source_dataset.RasterYSize != label_dataset.RasterYSize:
                     raise Exception("Raster y-dimensions do not match for " + filename + " pair.")
 
+    def get_source_metadata(self) -> None:
+        """Compiles information about the source imagery, and stores it in the source_metadata attribute.
+
+        Returns:
+            None
+        """
+
+        # check whether the source imagery exists
+        self.check_source()
+
+        # loop through the source imagery and extract relevant metadata
+        for filename in self.source_image_names:
+            dst = gdal.Open(os.path.join(self.source_path, filename))
+
+            # set metadata fields from the gdal.Dataset object
+            metadata_dict = {}
+            gt = dst.GetGeoTransform()
+            x_dim = dst.RasterXSize
+            y_dim = dst.RasterYSize
+
+            metadata_dict["band_counts"] = dst.RasterCount
+            metadata_dict["dimensions"] = (x_dim, y_dim)
+            metadata_dict["resolution"] = (gt[1], gt[5])
+            metadata_dict["raster_extent"] = np.abs(x_dim * gt[1] * y_dim * gt[5])
+
+            # calculate the "data_extent", or the raster_extent minus the area of nodata pixels. First, compute the
+            # number of nodata pixels
+            n_nodata_pixels = np.sum(np.where(np.sum(dst.ReadAsArray()) == 0, 1, 0))
+
+            # then compute the area of these pixels
+            nodata_area = np.abs(n_nodata_pixels * x_dim * y_dim)
+
+            # set the data_extent in the metadata_dictionary
+            metadata_dict["data_extent"] = metadata_dict["raster_extent"] - nodata_area
+
+            if "metre" in dst.GetProjection():
+                metadata_dict["units"] = "metre"
+            else:
+                raise (Exception("The raster " + filename + " may not be in metres."))
+
+            self.source_metadata[filename] = metadata_dict
+
+            # close the gdal.Dataset object
+            dst = None
+
     def generate_tiles(self, drop_single_class_tiles: bool = True,
                        verbose: bool = True) -> None:
         """Generates image tiles from the source and label imagery for use in model training. I followed the process
@@ -159,7 +166,7 @@ class SemSeg:
 
         Args:
             drop_single_class_tiles: whether to ignore tiles with a single class;
-            verbose: print source filenames when complete, if true.
+            verbose: whether to print progress to the console.
 
         Returns:
             None
@@ -214,6 +221,9 @@ class SemSeg:
     def rasterize_polygon_layers(self, verbose=True) -> None:
         """Generates label rasters from the vector data, with dimensions matching the source imagery.
 
+        Args:
+            verbose: whether to print progress to the console.
+
         Returns:
             None
         """
@@ -257,7 +267,8 @@ class SemSeg:
             verbose: whether to print progress to the console.
 
         Returns:
-            None"""
+            None
+        """
 
         # create directory if it doesn't already exist
         if not os.path.isdir(output_path):
