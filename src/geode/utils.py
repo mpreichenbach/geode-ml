@@ -3,7 +3,6 @@
 import numpy as np
 import os
 from osgeo import gdal, ogr, osr
-from pathlib import Path
 
 def tile_raster_pair(rgb: gdal.Dataset,
                      labels: gdal.Dataset,
@@ -13,12 +12,42 @@ def tile_raster_pair(rgb: gdal.Dataset,
                      label_tiles_dir: str,
                      filename: str):
 
+    """Generates tiles for training data from an rgb/label pair.
+
+    Args:
+        rgb: the dataset of RGB imagery;
+        labels: the dataset of single-band labeled imagery;
+        tile_dimension: the pixel length of the square tiles;
+        drop_single_class_tiles: whether to ignore tile pairs in which there is only a single label;
+        imagery_tiles_dir: directory in which to write the RGB tiles;
+        label_tiles_dir: directory in which to write the label tiles;
+        filename: the name to use for the tile pairs.
+
+    Returns:
+        None
+
+    Raises:
+        Exception: if dimensions of rgb and labels do not match."""
+
+    # boolean values for whether dimensions are equal
+    bool_x = rgb.RasterXSize == labels.RasterXSize
+    bool_y = rgb.RasterYSize == labels.RasterYSize
+
+    # test to ensure input imagery have the same dimensions
+    if bool_x or bool_y:
+        pass
+    else:
+        raise Exception("Input imagery does not have the same dimensions.")
+
+    # get the number of tiles in each dimension
     nx_tiles = int(rgb.RasterXSize / tile_dimension)
     ny_tiles = int(rgb.RasterYSize / tile_dimension)
 
+    # get the pixel values for the start of each tile
     x_steps = np.arange(nx_tiles) * tile_dimension
     y_steps = np.arange(ny_tiles) * tile_dimension
 
+    # loop to generate tiles
     for i in range(len(x_steps) - 1):
         x_start = x_steps[i]
         for j in range(len(y_steps) - 1):
