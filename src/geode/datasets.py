@@ -1,6 +1,6 @@
 # datasets.py
 
-from geode.utils import rasterize_polygon_layer
+from geode.utils import rasterize_polygon_layer, tile_raster_pair
 import numpy as np
 import os
 from osgeo import gdal, ogr, osr
@@ -153,12 +153,13 @@ class SemSeg:
                 elif source_dataset.RasterYSize != label_dataset.RasterYSize:
                     raise Exception("Raster y-dimensions do not match for " + filename + " pair.")
 
-    def generate_tiles(self, verbose: bool = True) -> None:
+    def generate_tiles(self, drop_single_class_tiles: bool = True,
+                       verbose: bool = True) -> None:
         """Generates image tiles from the source and label imagery for use in model training. I followed the process
         given in the video https://www.youtube.com/watch?v=H5uQ85VXttg.
 
         Args:
-            drop_single_class_tiles: whether to drop tile pairs in which the labels have only a single value;
+            drop_single_class_tiles: whether to ignore tiles with a single class;
             verbose: print source filenames when complete, if true.
 
         Returns:
@@ -167,9 +168,6 @@ class SemSeg:
 
         # check whether the label rasters are in good shape
         self.check_rasters()
-
-        # get the tile dimensions
-        dim = self.tile_dimension
 
         # create sub-directories for the tiles
         imagery_tiles_dir = os.path.join(self.tile_path, "imagery")
@@ -183,7 +181,21 @@ class SemSeg:
 
         # loop through each source/label raster pair to generate tiles
         for filename in self.source_image_names:
+            # open rgb and raster label imagery
+            rgb = gdal.Open(os.path.join(self.source_path, filename))
+            labels = gdal.Open(os.path.join(self.raster_path, filename))
 
+            # pull out tiles from imagery
+            tile_raster_pair(rgb=rgb,
+                             labels=labels,
+                             tile_dimension=self.tile_dimension,
+                             drop_single_class_tiles=drop_single_class_tiles,
+                             imagery_tiles_dir=imagery_tiles_dir,
+                             label_tiles_dir=label_tiles_dir,
+                             filename=filename)
+
+            if verbose:
+                print(filename + " tiles generated.")
 
     def get_label_vectors(self) -> None:
         """Queries the OpenStreetMaps API and downloads vector data over the source imagery.
