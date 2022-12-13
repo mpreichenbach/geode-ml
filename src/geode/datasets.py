@@ -208,9 +208,9 @@ class SemSeg:
         self.check_vectors()
 
         # loop through the source files
-        for filename in self.data_names:
+        # for filename in self.data_names:
 
-            # raise NotImplementedError("Method \'get_label_polygons\' not implemented.")
+        # raise NotImplementedError("Method \'get_label_polygons\' not implemented.")
 
     def rasterize_polygon_layers(self) -> None:
         """Generates label rasters from the vector data, with dimensions matching the source imagery.
@@ -238,6 +238,25 @@ class SemSeg:
                                     output_path=output_path,
                                     burn_value=self.burn_value,
                                     no_data_value=self.no_data_value)
+
+    def resample_source_imagery(self, output_path: str,
+                                method: str,
+                                target_resolution: tuple,
+                                replace_source_dataset: bool = True) -> None:
+
+        # create directory if it doesn't already exist
+        if not os.path.isdir(output_path):
+            os.mkdir(output_path)
+
+        for filename in self.source_image_names:
+            input_path = os.path.join(self.source_path, filename)
+            rgb = gdal.Open(input_path)
+
+            # resample the raster
+
+        # change dataset's source imagery if requested
+        if replace_source_dataset:
+            self.source_path = output_path
 
     def set_label_imagery(self, raster_path: str) -> None:
         """Defines the label imagery to use for other methods, if not already created by rasterize_vectors.

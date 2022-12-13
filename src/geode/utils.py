@@ -119,12 +119,18 @@ def rasterize_polygon_layer(rgb: gdal.Dataset,
     # write to the output file
     output_raster = None
 
-
-def resample_dataset(raster: gdal.Dataset,
-                     method: str,
+def resample_dataset(input_path: str,
+                     output_path: str,
+                     resample_algorithm: str,
                      target_resolution: tuple) -> None:
 
-    raise NotImplementedError("Method \'resample\' not implemented.")
+    resampled = gdal.Warp(destNameOrDestDS=output_path,
+                          srcDSOrSrcDSTab=input_path,
+                          xRes=target_resolution[0],
+                          yRes=target_resolution[1],
+                          resampleAlg=resample_algorithm)
+
+    resampled = None
 
 def write_raster(dataset: gdal.Dataset,
                  output_path: str,
