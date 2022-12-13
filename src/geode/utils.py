@@ -5,8 +5,55 @@ import os
 from osgeo import gdal, ogr, osr
 from pathlib import Path
 
-def tile_raster_pair():
-    
+def tile_raster_pair(rgb: gdal.Dataset,
+                     labels: gdal.Dataset,
+                     tile_dimension: int,
+                     drop_single_class_tiles: bool,
+                     imagery_tiles_dir: str,
+                     label_tiles_dir: str,
+                     filename: str):
+
+    nx_tiles = int(rgb.RasterXSize / tile_dimension)
+    ny_tiles = int(rgb.RasterYSize / tile_dimension)
+
+    x_steps = np.arange(nx_tiles) * tile_dimension
+    y_steps = np.arange(ny_tiles) * tile_dimension
+
+    for i in range(len(x_steps) - 1):
+        x_start = x_steps[i]
+        for j in range(len(y_steps) - 1):
+            y_start = y_steps[j]
+            # check whether both labels exist in the label tile. Note: gives a type error without float()
+            label_tile = labels.ReadAsArray(xoff=float(x_start),
+                                            yoff=float(y_start),
+                                            xsize=tile_dimension,
+                                            ysize=tile_dimension)
+
+            if drop_single_class_tiles and len(np.unique(label_tile)) == 1:
+                continue
+
+            # set the output paths
+            tile_name = os.path.splitext(filename)[0] + "_R{row}C{col}.tif".format(row=i, col=j)
+            imagery_tile_path = os.path.join(imagery_tiles_dir, tile_name)
+            label_tile_path = os.path.join(label_tiles_dir, tile_name)
+
+            # create the output imagery tile
+            rgb_tile = gdal.Translate(destName=imagery_tile_path,
+                                     srcDS=rgb,
+                                     srcWin=[x_start, y_start, tile_dimension, tile_dimension])
+
+            # create the output label tile
+            label_tile = gdal.Translate(destName=label_tile_path,
+                                      srcDS=labels,
+                                      srcWin=[x_start, y_start, tile_dimension, tile_dimension])
+
+            # flush tile data to disk
+            rgb_tile = None
+            label_tile = None
+
+    # remove connections to the larger rasters
+    rgb = None
+    labels = None
 
 def get_osm_layer(rgb: gdal.Dataset,
                   output_path: str,

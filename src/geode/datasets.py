@@ -153,8 +153,7 @@ class SemSeg:
                 elif source_dataset.RasterYSize != label_dataset.RasterYSize:
                     raise Exception("Raster y-dimensions do not match for " + filename + " pair.")
 
-    def generate_tiles(self, drop_single_class_tiles: bool = True,
-                       verbose: bool = True) -> None:
+    def generate_tiles(self, verbose: bool = True) -> None:
         """Generates image tiles from the source and label imagery for use in model training. I followed the process
         given in the video https://www.youtube.com/watch?v=H5uQ85VXttg.
 
@@ -184,54 +183,7 @@ class SemSeg:
 
         # loop through each source/label raster pair to generate tiles
         for filename in self.source_image_names:
-            # open the source and label rasters
-            src_dst = gdal.Open(os.path.join(self.source_path, filename))
-            lbl_dst = gdal.Open(os.path.join(self.raster_path, filename))
 
-            nx_tiles = int(src_dst.RasterXSize / self.tile_dimension)
-            ny_tiles = int(src_dst.RasterYSize / self.tile_dimension)
-
-            x_steps = np.arange(nx_tiles) * self.tile_dimension
-            y_steps = np.arange(ny_tiles) * self.tile_dimension
-
-            for i in range(len(x_steps) - 1):
-                x_start = x_steps[i]
-                for j in range(len(y_steps) - 1):
-                    y_start = y_steps[j]
-                    # check whether both labels exist in the label tile. Note: gives a type error without float()
-                    label_tile = lbl_dst.ReadAsArray(xoff=float(x_start),
-                                                     yoff=float(y_start),
-                                                     xsize=dim,
-                                                     ysize=dim)
-
-                    if drop_single_class_tiles and len(np.unique(label_tile)) == 1:
-                        continue
-
-                    # set the output paths
-                    tile_name = os.path.splitext(filename)[0] + "_R{row}C{col}.tif".format(row=i, col=j)
-                    imagery_tile_path = os.path.join(imagery_tiles_dir, tile_name)
-                    label_tile_path = os.path.join(label_tiles_dir, tile_name)
-
-                    # create the output imagery tile
-                    im_tile = gdal.Translate(destName=imagery_tile_path,
-                                             srcDS=src_dst,
-                                             srcWin=[x_start, y_start, dim, dim])
-
-                    # create the output label tile
-                    lbl_tile = gdal.Translate(destName=label_tile_path,
-                                              srcDS=lbl_dst,
-                                              srcWin=[x_start, y_start, dim, dim])
-
-                    # flush tile data to disk
-                    im_tile = None
-                    lbl_tile = None
-
-            # remove connections to the larger rasters
-            src_dst = None
-            lbl_dst = None
-
-            if verbose:
-                print(filename + " tiles generated.")
 
     def get_label_vectors(self) -> None:
         """Queries the OpenStreetMaps API and downloads vector data over the source imagery.
