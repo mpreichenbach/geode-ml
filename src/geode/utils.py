@@ -75,7 +75,7 @@ def tile_raster_pair(rgb: gdal.Dataset,
                                       srcDS=labels,
                                       srcWin=[x_start, y_start, tile_dimension, tile_dimension])
 
-            # flush tile data to disk
+            # close connections and write to disk
             rgb_tile = None
             label_tile = None
 
@@ -157,20 +157,32 @@ def rasterize_polygon_layer(rgb: gdal.Dataset,
                         polygon_layer,
                         burn_values=[burn_value])
 
-    # write to the output file
+    # close connection and write to disk
     output_raster = None
 
 def resample_dataset(input_path: str,
                      output_path: str,
-                     resample_algorithm: str,
-                     target_resolution: tuple) -> None:
+                     target_resolution: tuple,
+                     resample_algorithm: str = "cubic") -> None:
+    """A wrapper of gdal.Warp, but with human-readable argument values.
 
+    Args:
+        input_path: the filepath to the input imagery;
+        output_path: the filepath at which to write the resampled imagery;
+        target_resolution: a tuple of the form (xRes, yRes) for target resolutions, in units of meters;
+        resample_algorithm: the method used for resampling (see gdalwarp documentation for more options).
+
+    Returns:
+        None"""
+
+    # resample imagery
     resampled = gdal.Warp(destNameOrDestDS=output_path,
                           srcDSOrSrcDSTab=input_path,
                           xRes=target_resolution[0],
                           yRes=target_resolution[1],
                           resampleAlg=resample_algorithm)
 
+    # close connection and write to disk
     resampled = None
 
 def write_raster(dataset: gdal.Dataset,
@@ -212,5 +224,3 @@ def write_raster(dataset: gdal.Dataset,
         output_band = None
 
     output_dataset = None
-
-    return True
