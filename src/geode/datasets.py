@@ -6,11 +6,13 @@ import os
 from osgeo import gdal, ogr
 
 
-class SemanticSegmentation:
-    """Defines a semantic segmentation dataset to be used in deep-learning models."""
 
-    def __init__(self,
-                 source_path: str = "",
+class SemanticSegmentation:
+    """Defines a semantic segmentation dataset to be used in deep-learning models. Has methods to get polygon layers
+     from OpenStreetMaps, to rasterize polygon layers, to generate training tiles, and to generate an iterator object
+     for model training."""
+
+    def __init__(self, source_path: str = "",
                  vector_path: str = "",
                  raster_path: str = "",
                  tile_dimension: int = 0,
@@ -112,6 +114,53 @@ class SemanticSegmentation:
                     raise Exception("Raster x-dimensions do not match for " + filename + " pair.")
                 elif source_dataset.RasterYSize != label_dataset.RasterYSize:
                     raise Exception("Raster y-dimensions do not match for " + filename + " pair.")
+
+    def check_tiles(self) -> None:
+        """Checks whether the tiles have been correctly generated.
+
+        Returns:
+            None
+
+        Raises:
+            Exception: if tile_path has not been specified;
+            Exception: if tile_path is not a directory;
+            Exception: if tile_path doesn't have imagery/labels directories;
+            Exception: if imagery/label directories have different numbers of files.
+            Exception: if imagery/label tile filenames do not match.
+        """
+
+        # check whether tile_path has been specified
+        if self.tile_path == "":
+            raise Exception("The tile_path attribute has not been specified.")
+
+        # check whether tile_path is a directory
+        if os.path.isdir(self.tile_path):
+            pass
+        else:
+            raise Exception(self.tile_path + " is not a directory.")
+
+        # check if imagery/labels subdirectories exist
+        tile_path_contents = os.listdir(self.tile_path)
+        if "imagery" in tile_path_contents and "labels" in tile_path_contents:
+            pass
+        else:
+            raise Exception("The tile_path does not have either imagery or labels subdirectories.")
+
+        # get the image and label tile names
+        image_tiles = os.listdir(os.path.join(self.tile_path, "imagery"))
+        label_tiles = os.listdir(os.path.join(self.tile_path, "labels"))
+
+        # check if there are equal numbers of imagery/label tiles
+        if len(image_tiles) == len(label_tiles):
+            pass
+        else:
+            raise Exception("The numbers of imagery and label tiles are different.")
+
+        # check that imagery/label tile filenames are the same
+        if set(image_tiles) == set(label_tiles):
+            pass
+        else:
+            raise Exception("The imagery and label tiles do not have the same filenames.")
 
     def get_source_metadata(self) -> None:
         """Compiles information about the source imagery, and stores it in the source_metadata attribute.
@@ -313,3 +362,87 @@ class SemanticSegmentation:
 
         self.vector_path = vector_path
         self.check_vectors()
+
+    def training_generator(self, batch_size: int,
+                           use_tiles: bool=True,
+                           perform_one_hot: bool=True,
+                           n_classes: int=2,
+                           flip_vertically: bool=True,
+                           rotate: bool=True,
+                           scale_factor: float=1/255) -> iter:
+        """Creates an iterator object for model training.
+
+        Args:
+            batch_size: the number of tile pairs in each batch;
+            use_tiles: if true, uses the files at tile_path; otherwise, it reads tiles from the source/label pairs;
+            perform_one_hot: whether to do a one-hot encoding on the label tiles;
+            n_classes: the number of label classes;
+            flip_vertically: whether to randomly flip tile pairs vertically;
+            rotate: whether to randomly rotate tile pairs;
+            scale_factor: the factor by which to rescale input imagery tiles.
+
+        Returns:
+            An iterator object which generates batches of tile pairs for training.
+
+        Raises:
+            Exception: if perform_one_hot is False and n_classes is not an integer greater than 1.
+        """
+
+        if use_tiles:
+            # check that tiles are correctly generated
+            self.check_tiles()
+
+            if perform_one_hot and n_classes < 2:
+                raise Exception("Number of classes must be larger than two when performing one-hot encoding.")
+
+            imagery_path = os.path.join(self.tile_path, "imagery")
+            labels_path = os.path.join(self.tile_path, "labels")
+
+            imagery_filenames = os.listdir(imagery_path)
+            np.random.shuffle(imagery_filenames)
+            ids_train_split = range(len(imagery_filenames))
+            while True:
+                for start in range(0, len(ids_train_split), batch_size):
+                    x_batch = []
+                    y_batch = []
+                    end = min(start + batch_size, len(ids_train_split))
+                    ids_train_batch = ids_train_split[start:end]
+
+                    for ID in ids_train_batch:
+                        img = gdal.Open(os.path.join(imagery_path, imagery_filenames[ID])).ReadAsArray()
+                        lbl = gdal.Open(os.path.join(labels_path, imagery_filenames[ID])).ReadAsArray()
+
+                        # ensure tiles follow the channels-last convention
+                        img = np.moveaxis(img, 0, -1)
+
+                        # perform a random counterclockwise rotation
+                        if rotate:
+                            k_rot = np.random.randint(0, 4)
+                            img = np.rot90(img, k=k_rot)
+                            lbl = np.rot90(lbl, k=k_rot)
+
+                        # perform a random vertical flip
+                        if flip_vertically and np.random.randint(0, 2) == 1:
+                            img = np.flip(img, axis=0)
+                            lbl = np.flip(lbl, axis=0)
+
+                        # rescale the imagery tile
+                        img = img * scale_factor
+
+                        x_batch.append(img)
+                        y_batch.append(lbl)
+
+                    x_batch = np.array(x_batch)
+                    y_batch = np.array(y_batch)
+
+                    # perform a one-hot encoding if desired
+                    if perform_one_hot:
+                        oh_y_batch = np.zeros(y_batch.shape + (n_classes, ), dtype=np.uint8)
+                        for i in range(n_classes):
+                            oh_y_batch[:, :, :, i][y_batch == i] = 1
+
+                        y_batch = oh_y_batch
+
+                    yield x_batch, y_batch
+        else:
+            pass

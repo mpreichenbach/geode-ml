@@ -58,7 +58,8 @@ def tile_raster_pair(rgb: gdal.Dataset,
                                        xsize=tile_dimension,
                                        ysize=tile_dimension)
 
-            band_sum = np.sum(rgb_tile, axis=-1)
+            # sum across the channels (GDAL arrays are channel-first)
+            band_sum = np.sum(rgb_tile, axis=0)
 
             if 0 in np.unique(band_sum):
                 continue
@@ -200,7 +201,7 @@ def resample_dataset(input_path: str,
 
 def write_raster(dataset: gdal.Dataset,
                  output_path: str,
-                 no_data_value: int = 0) -> bool:
+                 no_data_value: int = 0) -> None:
     """Writes the predicted array, with correct metadata values, to a tif file.
 
     Args:
