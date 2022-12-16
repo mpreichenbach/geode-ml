@@ -1,6 +1,6 @@
 # datasets.py
 
-from geode import utils
+from geode import utilities
 import numpy as np
 import os
 from osgeo import gdal, ogr
