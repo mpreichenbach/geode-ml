@@ -240,7 +240,7 @@ class SemanticSegmentation:
             labels = gdal.Open(os.path.join(self.raster_path, filename))
 
             # pull out tiles from imagery
-            utils.tile_raster_pair(rgb=rgb,
+            utilities.tile_raster_pair(rgb=rgb,
                                    labels=labels,
                                    tile_dimension=self.tile_dimension,
                                    drop_single_class_tiles=drop_single_class_tiles,
@@ -291,7 +291,7 @@ class SemanticSegmentation:
 
             # rasterize the polygon layer
 
-            utils.rasterize_polygon_layer(rgb=rgb,
+            utilities.rasterize_polygon_layer(rgb=rgb,
                                           polygons=polygons,
                                           output_path=output_path,
                                           burn_value=self.burn_value,
@@ -324,7 +324,7 @@ class SemanticSegmentation:
 
         # resample the rasters
         for filename in self.source_image_names:
-            utils.resample_dataset(input_path=os.path.join(self.source_path, filename),
+            utilities.resample_dataset(input_path=os.path.join(self.source_path, filename),
                                    output_path=os.path.join(output_path, filename),
                                    resample_algorithm=resample_algorithm,
                                    target_resolution=target_resolution)
