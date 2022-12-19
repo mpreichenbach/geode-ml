@@ -1,6 +1,6 @@
 Geode
 =====
-This package contains methods and classes to process geospatial imagery and datasets into useful training data, particularly for deep-learning applications.
+This package contains methods and classes to process geospatial imagery into useful training data, particularly for deep-learning applications.
 
 Datasets
 --------
