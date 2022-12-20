@@ -1,6 +1,6 @@
 # datasets.py
 
-from geode import utilities
+from utils import rasterize_polygon_layer, resample_dataset, tile_raster_pair
 import numpy as np
 import os
 from osgeo import gdal, ogr
@@ -8,8 +8,8 @@ from osgeo import gdal, ogr
 
 
 class SemanticSegmentation:
-    """Defines a semantic segmentation dataset to be used in deep-learning models. Has methods to get polygon layers
-     from OpenStreetMaps, to rasterize polygon layers, to generate training tiles, and to generate an iterator object
+    """Defines a semantic segmentation dataset to be used in deep-learning models. Has methods to resample source
+     imagery, to rasterize polygon layers, to generate training tiles, and to generate an iterator object
      for model training."""
 
     def __init__(self, source_path: str = "",
@@ -20,8 +20,7 @@ class SemanticSegmentation:
                  dataset_description: str = "",
                  channel_description: str = "",
                  no_data_value: int = 0,
-                 burn_value: int = 1,
-                 osm_key: str = "building"):
+                 burn_value: int = 1):
 
         self.channel_description: str = channel_description
         self.dataset_description: str = dataset_description
@@ -240,7 +239,7 @@ class SemanticSegmentation:
             labels = gdal.Open(os.path.join(self.raster_path, filename))
 
             # pull out tiles from imagery
-            utilities.tile_raster_pair(rgb=rgb,
+            tile_raster_pair(rgb=rgb,
                                    labels=labels,
                                    tile_dimension=self.tile_dimension,
                                    drop_single_class_tiles=drop_single_class_tiles,
@@ -291,7 +290,7 @@ class SemanticSegmentation:
 
             # rasterize the polygon layer
 
-            utilities.rasterize_polygon_layer(rgb=rgb,
+            rasterize_polygon_layer(rgb=rgb,
                                           polygons=polygons,
                                           output_path=output_path,
                                           burn_value=self.burn_value,
@@ -324,7 +323,7 @@ class SemanticSegmentation:
 
         # resample the rasters
         for filename in self.source_image_names:
-            utilities.resample_dataset(input_path=os.path.join(self.source_path, filename),
+            resample_dataset(input_path=os.path.join(self.source_path, filename),
                                    output_path=os.path.join(output_path, filename),
                                    resample_algorithm=resample_algorithm,
                                    target_resolution=target_resolution)
