@@ -115,20 +115,20 @@ def resample_dataset(input_path: str,
 def tile_raster_pair(rgb: Dataset,
                      labels: Dataset,
                      tile_dimension: int,
-                     drop_single_class_tiles: bool,
                      imagery_tiles_dir: str,
                      label_tiles_dir: str,
-                     filename: str):
+                     filename: str,
+                     label_proportion: float=0.2):
     """Generates tiles for training data from an rgb/label pair.
 
     Args:
         rgb: the dataset of RGB imagery;
         labels: the dataset of single-band labeled imagery;
         tile_dimension: the pixel length of the square tiles;
-        drop_single_class_tiles: whether to ignore tile pairs in which there is only a single label;
         imagery_tiles_dir: directory in which to write the RGB tiles;
         label_tiles_dir: directory in which to write the label tiles;
-        filename: the name to use for the tile pairs.
+        filename: the name to use for the tile pairs;
+        label_proportion: the minimum proportion which any single class must have per tile.
 
     Returns:
         None
@@ -146,6 +146,9 @@ def tile_raster_pair(rgb: Dataset,
     else:
         raise Exception("Input imagery does not have the same dimensions.")
 
+    # get the number of pixels per tile
+    n_pixels = tile_dimension ** 2
+
     # get the number of tiles in each dimension
     nx_tiles = int(rgb.RasterXSize / tile_dimension)
     ny_tiles = int(rgb.RasterYSize / tile_dimension)
@@ -154,36 +157,42 @@ def tile_raster_pair(rgb: Dataset,
     x_steps = arange(nx_tiles) * tile_dimension
     y_steps = arange(ny_tiles) * tile_dimension
 
+    # set a counter to name tiles
+    counter = 0
+
     # loop to generate tiles
     for i in range(len(x_steps) - 1):
         x_start = x_steps[i]
         for j in range(len(y_steps) - 1):
             y_start = y_steps[j]
 
-            # skip pairs where the source has a NoData pixel. Note: gives a type error without float()
+            # read the RGB tile
             rgb_tile = rgb.ReadAsArray(xoff=float(x_start),
                                        yoff=float(y_start),
                                        xsize=tile_dimension,
                                        ysize=tile_dimension)
 
-            # sum across the channels (GDAL arrays are channel-first)
+            # sum across the channel (GDAL arrays are channel-first)
             band_sum = sum(rgb_tile, axis=0)
 
+            # skip tiles which have a NoData pixel (which are read as 0 in each channel)
             if 0 in unique(band_sum):
                 continue
 
-            # skip pairs where label tile doesn't have both values
-            if drop_single_class_tiles:
-                label_tile = labels.ReadAsArray(xoff=float(x_start),
-                                                yoff=float(y_start),
-                                                xsize=tile_dimension,
-                                                ysize=tile_dimension)
+            # read the corresponding labels tile
+            label_tile = labels.ReadAsArray(xoff=float(x_start),
+                                            yoff=float(y_start),
+                                            xsize=tile_dimension,
+                                            ysize=tile_dimension)
 
-                if len(unique(label_tile)) == 1:
-                    continue
+            # get positive label proportion
+            tile_proportion = sum(label_tile) / n_pixels
+
+            if tile_proportion < label_proportion or tile_proportion > (1 - label_proportion):
+                continue
 
             # set the output paths
-            tile_name = splitext(filename)[0] + "_R{row}C{col}.tif".format(row=i, col=j)
+            tile_name = splitext(filename)[0] + "_{counter}.tif".format(counter=counter)
             imagery_tile_path = join(imagery_tiles_dir, tile_name)
             label_tile_path = join(label_tiles_dir, tile_name)
 
@@ -196,6 +205,9 @@ def tile_raster_pair(rgb: Dataset,
             label_tile = Translate(destName=label_tile_path,
                                    srcDS=labels,
                                    srcWin=[x_start, y_start, tile_dimension, tile_dimension])
+
+            # increment the counter by 1
+            counter += 1
 
             # close connections and write to disk
             rgb_tile = None

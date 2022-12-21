@@ -25,6 +25,7 @@ class SemanticSegmentation:
 
         self.channel_description: str = channel_description
         self.dataset_description: str = dataset_description
+        self.label_proportion: float = 0.0
         self.raster_path = raster_path
         self.source_image_names = os.listdir(source_path)
         self.source_metadata: dict = {}
@@ -207,13 +208,13 @@ class SemanticSegmentation:
             # close the gdal.Dataset object
             dst = None
 
-    def generate_tiles(self, drop_single_class_tiles: bool = True,
+    def generate_tiles(self, label_proportion: float = 0.2,
                        verbose: bool = True) -> None:
         """Generates image tiles from the source and label imagery for use in model training. I followed the process
         given in the video https://www.youtube.com/watch?v=H5uQ85VXttg.
 
         Args:
-            drop_single_class_tiles: whether to ignore tiles with a single class;
+            label_proportion: the minimum proportion which any single class must have per tile;
             verbose: whether to print progress to the console.
 
         Returns:
@@ -222,6 +223,9 @@ class SemanticSegmentation:
 
         # check whether the label rasters are in good shape
         self.check_rasters()
+
+        # set an attribute for the label proportion in the generated tiles
+        self.label_proportion = label_proportion
 
         # create sub-directories for the tiles
         imagery_tiles_dir = os.path.join(self.tile_path, "imagery")
@@ -243,7 +247,7 @@ class SemanticSegmentation:
             tile_raster_pair(rgb=rgb,
                              labels=labels,
                              tile_dimension=self.tile_dimension,
-                             drop_single_class_tiles=drop_single_class_tiles,
+                             label_proportion=self.label_proportion,
                              imagery_tiles_dir=imagery_tiles_dir,
                              label_tiles_dir=label_tiles_dir,
                              filename=filename)
