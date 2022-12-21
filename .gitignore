@@ -1,5 +1,7 @@
-/.idea/
-/test/
-/test/__pycache__
-/geodl/.idea/
-/geodl/__pycache__/
+*.egg-info
+geode/.idea/
+geode/__pycache__/
+.idea/
+__pycache__
+test/
+
