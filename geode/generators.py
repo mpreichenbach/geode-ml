@@ -1,11 +1,10 @@
-# generators.py
+# TrainingGenerator.py
 
 from numpy.random import randint, shuffle
 from numpy import array, flip, moveaxis, rot90, uint8, zeros
 from os import listdir
 from os.path import join
-from osgeo import gdal
-
+from osgeo.gdal import Open
 
 
 class TrainingGenerator:
@@ -60,8 +59,8 @@ class TrainingGenerator:
                 ids_train_batch = ids_train_split[start:end]
 
                 for ID in ids_train_batch:
-                    img = gdal.Open(join(imagery_path, imagery_filenames[ID])).ReadAsArray()
-                    lbl = gdal.Open(join(labels_path, imagery_filenames[ID])).ReadAsArray()
+                    img = Open(join(imagery_path, imagery_filenames[ID])).ReadAsArray()
+                    lbl = Open(join(labels_path, imagery_filenames[ID])).ReadAsArray()
 
                     # ensure tiles follow the channels-last convention
                     img = moveaxis(img, 0, -1)

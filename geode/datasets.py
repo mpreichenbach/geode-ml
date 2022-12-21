@@ -1,10 +1,11 @@
 # datasets.py
 
-from utils import rasterize_polygon_layer, resample_dataset, tile_raster_pair
-import numpy as np
+from utilities import rasterize_polygon_layer, resample_dataset, tile_raster_pair
+from numpy import abs, sum, where
+from numpy.testing import assert_allclose
+
 import os
 from osgeo import gdal, ogr
-
 
 
 class SemanticSegmentation:
@@ -53,7 +54,7 @@ class SemanticSegmentation:
 
     def check_vectors(self) -> None:
         """Checks whether the vector data has been set, and matches the names of the source imagery.
-        
+
         Returns:
             None
 
@@ -106,7 +107,7 @@ class SemanticSegmentation:
                 label_dataset = gdal.Open(os.path.join(self.raster_path, filename))
 
                 # we use a numpy unittest to determine if the geotransforms are almost equal:
-                np.testing.assert_allclose(source_dataset.GetGeoTransform(), label_dataset.GetGeoTransform())
+                assert_allclose(source_dataset.GetGeoTransform(), label_dataset.GetGeoTransform())
 
                 # check other metadata to see if it matches
                 if source_dataset.RasterXSize != label_dataset.RasterXSize:
@@ -184,14 +185,14 @@ class SemanticSegmentation:
             metadata_dict["band_counts"] = dst.RasterCount
             metadata_dict["dimensions"] = (x_dim, y_dim)
             metadata_dict["resolution"] = (gt[1], gt[5])
-            metadata_dict["raster_extent"] = np.abs(x_dim * gt[1] * y_dim * gt[5])
+            metadata_dict["raster_extent"] = abs(x_dim * gt[1] * y_dim * gt[5])
 
             # calculate the "data_extent", or the raster_extent minus the area of nodata pixels. First, compute the
             # number of nodata pixels
-            n_nodata_pixels = np.sum(np.where(np.sum(dst.ReadAsArray()) == 0, 1, 0))
+            n_nodata_pixels = sum(where(sum(dst.ReadAsArray()) == 0, 1, 0))
 
             # then compute the area of these pixels
-            nodata_area = np.abs(n_nodata_pixels * x_dim * y_dim)
+            nodata_area = abs(n_nodata_pixels * x_dim * y_dim)
 
             # set the data_extent in the metadata_dictionary
             metadata_dict["data_extent"] = metadata_dict["raster_extent"] - nodata_area
@@ -240,12 +241,12 @@ class SemanticSegmentation:
 
             # pull out tiles from imagery
             tile_raster_pair(rgb=rgb,
-                                   labels=labels,
-                                   tile_dimension=self.tile_dimension,
-                                   drop_single_class_tiles=drop_single_class_tiles,
-                                   imagery_tiles_dir=imagery_tiles_dir,
-                                   label_tiles_dir=label_tiles_dir,
-                                   filename=filename)
+                             labels=labels,
+                             tile_dimension=self.tile_dimension,
+                             drop_single_class_tiles=drop_single_class_tiles,
+                             imagery_tiles_dir=imagery_tiles_dir,
+                             label_tiles_dir=label_tiles_dir,
+                             filename=filename)
 
             if verbose:
                 print(filename + " tiles generated.")
@@ -274,7 +275,7 @@ class SemanticSegmentation:
         Returns:
             None
         """
-        
+
         # check whether vector data has been set and matches the names in the source imagery
         self.check_vectors()
 
@@ -291,17 +292,17 @@ class SemanticSegmentation:
             # rasterize the polygon layer
 
             rasterize_polygon_layer(rgb=rgb,
-                                          polygons=polygons,
-                                          output_path=output_path,
-                                          burn_value=self.burn_value,
-                                          no_data_value=self.no_data_value)
+                                    polygons=polygons,
+                                    output_path=output_path,
+                                    burn_value=self.burn_value,
+                                    no_data_value=self.no_data_value)
 
             if verbose:
                 print(filename + " rasterized.")
 
     def resample_source_imagery(self, output_path: str,
                                 target_resolution: tuple,
-                                resample_algorithm: str="cubic",
+                                resample_algorithm: str = "cubic",
                                 replace_source_dataset: bool = True,
                                 verbose=True) -> None:
         """Resamples the source imagery to the target resolution.
@@ -324,9 +325,9 @@ class SemanticSegmentation:
         # resample the rasters
         for filename in self.source_image_names:
             resample_dataset(input_path=os.path.join(self.source_path, filename),
-                                   output_path=os.path.join(output_path, filename),
-                                   resample_algorithm=resample_algorithm,
-                                   target_resolution=target_resolution)
+                             output_path=os.path.join(output_path, filename),
+                             resample_algorithm=resample_algorithm,
+                             target_resolutions=target_resolution)
 
             if verbose:
                 print(filename + " resampled to " + str(target_resolution) + ".")
@@ -363,12 +364,12 @@ class SemanticSegmentation:
         self.check_vectors()
 
     def training_generator(self, batch_size: int,
-                           use_tiles: bool=True,
-                           perform_one_hot: bool=True,
-                           n_classes: int=2,
-                           flip_vertically: bool=True,
-                           rotate: bool=True,
-                           scale_factor: float=1/255) -> iter:
+                           use_tiles: bool = True,
+                           perform_one_hot: bool = True,
+                           n_classes: int = 2,
+                           flip_vertically: bool = True,
+                           rotate: bool = True,
+                           scale_factor: float = 1 / 255) -> iter:
         """Creates an iterator object for model training.
 
         Args:
@@ -387,61 +388,4 @@ class SemanticSegmentation:
             Exception: if perform_one_hot is False and n_classes is not an integer greater than 1.
         """
 
-        if use_tiles:
-            # check that tiles are correctly generated
-            self.check_tiles()
-
-            if perform_one_hot and n_classes < 2:
-                raise Exception("Number of classes must be larger than two when performing one-hot encoding.")
-
-            imagery_path = os.path.join(self.tile_path, "imagery")
-            labels_path = os.path.join(self.tile_path, "labels")
-
-            imagery_filenames = os.listdir(imagery_path)
-            np.random.shuffle(imagery_filenames)
-            ids_train_split = range(len(imagery_filenames))
-            while True:
-                for start in range(0, len(ids_train_split), batch_size):
-                    x_batch = []
-                    y_batch = []
-                    end = min(start + batch_size, len(ids_train_split))
-                    ids_train_batch = ids_train_split[start:end]
-
-                    for ID in ids_train_batch:
-                        img = gdal.Open(os.path.join(imagery_path, imagery_filenames[ID])).ReadAsArray()
-                        lbl = gdal.Open(os.path.join(labels_path, imagery_filenames[ID])).ReadAsArray()
-
-                        # ensure tiles follow the channels-last convention
-                        img = np.moveaxis(img, 0, -1)
-
-                        # perform a random counterclockwise rotation
-                        if rotate:
-                            k_rot = np.random.randint(0, 4)
-                            img = np.rot90(img, k=k_rot)
-                            lbl = np.rot90(lbl, k=k_rot)
-
-                        # perform a random vertical flip
-                        if flip_vertically and np.random.randint(0, 2) == 1:
-                            img = np.flip(img, axis=0)
-                            lbl = np.flip(lbl, axis=0)
-
-                        # rescale the imagery tile
-                        img = img * scale_factor
-
-                        x_batch.append(img)
-                        y_batch.append(lbl)
-
-                    x_batch = np.array(x_batch)
-                    y_batch = np.array(y_batch)
-
-                    # perform a one-hot encoding if desired
-                    if perform_one_hot:
-                        oh_y_batch = np.zeros(y_batch.shape + (n_classes, ), dtype=np.uint8)
-                        for i in range(n_classes):
-                            oh_y_batch[:, :, :, i][y_batch == i] = 1
-
-                        y_batch = oh_y_batch
-
-                    yield x_batch, y_batch
-        else:
-            pass
+        # this method will be developed later
