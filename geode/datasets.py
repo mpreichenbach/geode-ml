@@ -283,7 +283,7 @@ class SemanticSegmentation:
             polygons = ogr.Open(join(self.polygons_path, fname, fname + ".shp"))
 
             # set the output path
-            output_path = join(self.raster_path, filename + ".tif")
+            output_path = join(self.labels_path, filename + ".tif")
 
             # rasterize the polygon layer
 
@@ -297,7 +297,7 @@ class SemanticSegmentation:
                 print(filename + " rasterized.")
 
     def resample_source_imagery(self, output_path: str,
-                                target_resolution: tuple,
+                                target_resolutions: tuple,
                                 resample_algorithm: str = "cubic",
                                 replace_source_dataset: bool = True,
                                 verbose=True) -> None:
@@ -323,26 +323,27 @@ class SemanticSegmentation:
             resample_dataset(input_path=join(self.source_path, filename),
                              output_path=join(output_path, filename),
                              resample_algorithm=resample_algorithm,
-                             target_resolutions=target_resolution)
+                             target_resolutions=target_resolutions)
 
             if verbose:
-                print(filename + " resampled to " + str(target_resolution) + ".")
+                print(filename + " resampled to " + str(target_resolutions) + ".")
 
         # change dataset's source imagery if requested
         if replace_source_dataset:
             self.source_path = output_path
+            self.get_source_metadata()
 
-    def set_label_imagery(self, raster_path: str) -> None:
+    def set_label_imagery(self, labels_path: str) -> None:
         """Defines the label imagery to use for other methods, if not already created by rasterize_polygons.
 
         Args:
-            raster_path: the directory containing the label rasters.
+            labels_path: the directory containing the label rasters.
 
         Returns:
             None
         """
 
-        self.raster_path = raster_path
+        self.labels_path = labels_path
         self.check_labels()
 
     def set_label_polygons(self, polygons_path) -> None:
