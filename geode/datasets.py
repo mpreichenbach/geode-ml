@@ -1,7 +1,7 @@
 # datasets.py
 
 from geode.utilities import rasterize_polygon_layer, resample_dataset, tile_raster_pair
-from numpy import abs, sum, where
+from numpy import abs
 from numpy.testing import assert_allclose
 from os import listdir, mkdir
 from os.path import isdir, join, splitext
@@ -14,8 +14,8 @@ class SemanticSegmentation:
      for model training."""
 
     def __init__(self, source_path: str = "",
-                 vector_path: str = "",
-                 raster_path: str = "",
+                 polygons_path: str = "",
+                 labels_path: str = "",
                  tile_dimension: int = 0,
                  tile_path: str = "",
                  dataset_description: str = "",
@@ -26,11 +26,11 @@ class SemanticSegmentation:
         self.channel_description: str = channel_description
         self.dataset_description: str = dataset_description
         self.label_proportion: float = 0.0
-        self.raster_path = raster_path
+        self.labels_path = labels_path
         self.source_image_names = listdir(source_path)
         self.source_metadata: dict = {}
         self.source_path = source_path
-        self.vector_path = vector_path
+        self.polygons_path = polygons_path
         self.tile_dimension = tile_dimension
         self.tile_path = tile_path
         self.data_names = [splitext(x)[0] for x in listdir(source_path)]
@@ -53,34 +53,34 @@ class SemanticSegmentation:
         elif len(listdir(self.source_path)) == 0:
             raise Exception("The source_path is empty.")
 
-    def check_vectors(self) -> None:
-        """Checks whether the vector data has been set, and matches the names of the source imagery.
+    def check_polygons(self) -> None:
+        """Checks whether the polygon data has been set, and matches the names of the source imagery.
 
         Returns:
             None
 
         Raises:
-            Exception: if vector_path has not been set;
-            Exception: if vector_path is empty;
-            Exception: if vector data folder names do not match source imagery names;
-            Exception: if a vector data folder does not contain a shapefile.
+            Exception: if polygons_path has not been set;
+            Exception: if polygons_path is empty;
+            Exception: if polygon data folder names do not match source imagery names;
+            Exception: if a polygon data folder does not contain a shapefile.
         """
 
-        if self.vector_path == "":
-            raise Exception("The vector_path has not been set; run either the get_label_vectors "
-                            "or set_label_vectors first.")
-        elif len(listdir(self.vector_path)) == 0:
-            raise Exception("The vector_path is empty.")
-        elif [splitext(x)[0] for x in listdir(self.source_path)] != listdir(self.vector_path):
-            raise Exception("Source imagery names do not match vector data names.")
+        if self.polygons_path == "":
+            raise Exception("The polygons_path has not been set; run either the get_label_polygons "
+                            "or set_label_polygons first.")
+        elif len(listdir(self.polygons_path)) == 0:
+            raise Exception("The polygons_path is empty.")
+        elif [splitext(x)[0] for x in listdir(self.source_path)] != listdir(self.polygons_path):
+            raise Exception("Source imagery names do not match polygon data names.")
         else:
-            for directory in listdir(self.vector_path):
-                filenames = listdir(join(self.vector_path, directory))
+            for directory in listdir(self.polygons_path):
+                filenames = listdir(join(self.polygons_path, directory))
                 shapefiles = [x for x in filenames if splitext(x)[1] == ".shp"]
                 if len(shapefiles) != 1:
-                    raise Exception("The vector data directories must have exactly one shapefile.")
+                    raise Exception("The polygons data directories must have exactly one shapefile.")
 
-    def check_rasters(self) -> None:
+    def check_labels(self) -> None:
         """Checks whether the label rasters have been generated, and match the names of the source imagery.
 
         Returns:
@@ -97,7 +97,7 @@ class SemanticSegmentation:
 
         if self.raster_path == "":
             raise Exception("The raster_path has not been set; run either the set_label_imagery "
-                            "or rasterize_vectors first.")
+                            "or rasterize_polygons first.")
         elif len(listdir(self.raster_path)) == 0:
             raise Exception("The raster_path is empty.")
         elif listdir(self.source_path) != listdir(self.raster_path):
@@ -163,7 +163,7 @@ class SemanticSegmentation:
         else:
             raise Exception("The imagery and label tiles do not have the same filenames.")
 
-    def get_source_metadata(self) -> None:
+    def get_source_metadata(self) -> dict:
         """Compiles information about the source imagery, and stores it in the source_metadata attribute.
 
         Returns:
@@ -188,16 +188,6 @@ class SemanticSegmentation:
             metadata_dict["resolution"] = (gt[1], gt[5])
             metadata_dict["raster_extent"] = abs(x_dim * gt[1] * y_dim * gt[5])
 
-            # calculate the "data_extent", or the raster_extent minus the area of nodata pixels. First, compute the
-            # number of nodata pixels
-            n_nodata_pixels = sum(where(sum(dst.ReadAsArray()) == 0, 1, 0))
-
-            # then compute the area of these pixels
-            nodata_area = abs(n_nodata_pixels * x_dim * y_dim)
-
-            # set the data_extent in the metadata_dictionary
-            metadata_dict["data_extent"] = metadata_dict["raster_extent"] - nodata_area
-
             if "metre" in dst.GetProjection():
                 metadata_dict["units"] = "metre"
             else:
@@ -207,6 +197,8 @@ class SemanticSegmentation:
 
             # close the gdal.Dataset object
             dst = None
+
+        return self.source_metadata
 
     def generate_tiles(self, label_proportion: float = 0.2,
                        verbose: bool = True) -> None:
@@ -222,7 +214,7 @@ class SemanticSegmentation:
         """
 
         # check whether the label rasters are in good shape
-        self.check_rasters()
+        self.check_labels()
 
         # set an attribute for the label proportion in the generated tiles
         self.label_proportion = label_proportion
@@ -255,15 +247,15 @@ class SemanticSegmentation:
             if verbose:
                 print(filename + " tiles generated.")
 
-    def get_label_vectors(self) -> None:
-        """Queries the OpenStreetMaps API and downloads vector data over the source imagery.
+    def get_label_polygons(self) -> None:
+        """Queries the OpenStreetMaps API and downloads polygon data over the source imagery.
 
         Returns:
             None
         """
 
         # check whether the source imagery directory has been set and is nonempty.
-        self.check_vectors()
+        self.check_polygons()
 
         # loop through the source files
         # for filename in self.data_names:
@@ -271,7 +263,7 @@ class SemanticSegmentation:
         # raise NotImplementedError("Method \'get_label_polygons\' not implemented.")
 
     def rasterize_polygon_layers(self, verbose=True) -> None:
-        """Generates label rasters from the vector data, with dimensions matching the source imagery.
+        """Generates label rasters from the polygon data, with dimensions matching the source imagery.
 
         Args:
             verbose: whether to print progress to the console.
@@ -280,15 +272,15 @@ class SemanticSegmentation:
             None
         """
 
-        # check whether vector data has been set and matches the names in the source imagery
-        self.check_vectors()
+        # check whether polygon data has been set and matches the names in the source imagery
+        self.check_polygons()
 
-        # loop through the shapefiles in the vectors directory
+        # loop through the shapefiles in the polygons directory
         for filename in self.data_names:
             fname = splitext(filename)[0]
             # open the source/polygon pair
             rgb = gdal.Open(join(self.source_path, filename + ".tif"))
-            polygons = ogr.Open(join(self.vector_path, fname, fname + ".shp"))
+            polygons = ogr.Open(join(self.polygons_path, fname, fname + ".shp"))
 
             # set the output path
             output_path = join(self.raster_path, filename + ".tif")
@@ -326,7 +318,7 @@ class SemanticSegmentation:
         if not isdir(output_path):
             mkdir(output_path)
 
-        # resample the rasters
+        # resample the source rasters
         for filename in self.source_image_names:
             resample_dataset(input_path=join(self.source_path, filename),
                              output_path=join(output_path, filename),
@@ -341,7 +333,7 @@ class SemanticSegmentation:
             self.source_path = output_path
 
     def set_label_imagery(self, raster_path: str) -> None:
-        """Defines the label imagery to use for other methods, if not already created by rasterize_vectors.
+        """Defines the label imagery to use for other methods, if not already created by rasterize_polygons.
 
         Args:
             raster_path: the directory containing the label rasters.
@@ -351,21 +343,21 @@ class SemanticSegmentation:
         """
 
         self.raster_path = raster_path
-        self.check_rasters()
+        self.check_labels()
 
-    def set_label_vectors(self, vector_path) -> None:
-        """Defines the vector data, and provides a manual alternative to the get_label_vectors method; e.g., this method
-        is useful when one wants to use vector data from a source other than OpenStreetMaps.
+    def set_label_polygons(self, polygons_path) -> None:
+        """Defines the polygon data, and provides a manual alternative to the get_label_polygons method; e.g., this
+        method is useful when one wants to use polygon data from a source other than OpenStreetMaps.
 
         Args:
-            vector_path: the directory containing the vector data (one sub-directory for each source image).
+            polygons_path: the directory containing the polygon data (one sub-directory for each source image).
 
         Returns:
             None
         """
 
-        self.vector_path = vector_path
-        self.check_vectors()
+        self.polygons_path = polygons_path
+        self.check_polygons()
 
     def training_generator(self, batch_size: int,
                            use_tiles: bool = True,
