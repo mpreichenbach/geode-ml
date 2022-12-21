@@ -3,8 +3,8 @@
 from geode.utilities import rasterize_polygon_layer, resample_dataset, tile_raster_pair
 from numpy import abs, sum, where
 from numpy.testing import assert_allclose
-
-import os
+from os import listdir, mkdir
+from os.path import isdir, join, splitext
 from osgeo import gdal, ogr
 
 
@@ -27,13 +27,13 @@ class SemanticSegmentation:
         self.dataset_description: str = dataset_description
         self.label_proportion: float = 0.0
         self.raster_path = raster_path
-        self.source_image_names = os.listdir(source_path)
+        self.source_image_names = listdir(source_path)
         self.source_metadata: dict = {}
         self.source_path = source_path
         self.vector_path = vector_path
         self.tile_dimension = tile_dimension
         self.tile_path = tile_path
-        self.data_names = [os.path.splitext(x)[0] for x in os.listdir(source_path)]
+        self.data_names = [splitext(x)[0] for x in listdir(source_path)]
         self.no_data_value = no_data_value
         self.burn_value = burn_value
 
@@ -50,7 +50,7 @@ class SemanticSegmentation:
 
         if self.source_path == "":
             raise Exception("The source_path has not been set.")
-        elif len(os.listdir(self.source_path)) == 0:
+        elif len(listdir(self.source_path)) == 0:
             raise Exception("The source_path is empty.")
 
     def check_vectors(self) -> None:
@@ -69,14 +69,14 @@ class SemanticSegmentation:
         if self.vector_path == "":
             raise Exception("The vector_path has not been set; run either the get_label_vectors "
                             "or set_label_vectors first.")
-        elif len(os.listdir(self.vector_path)) == 0:
+        elif len(listdir(self.vector_path)) == 0:
             raise Exception("The vector_path is empty.")
-        elif [os.path.splitext(x)[0] for x in os.listdir(self.source_path)] != os.listdir(self.vector_path):
+        elif [splitext(x)[0] for x in listdir(self.source_path)] != listdir(self.vector_path):
             raise Exception("Source imagery names do not match vector data names.")
         else:
-            for directory in os.listdir(self.vector_path):
-                filenames = os.listdir(os.path.join(self.vector_path, directory))
-                shapefiles = [x for x in filenames if os.path.splitext(x)[1] == ".shp"]
+            for directory in listdir(self.vector_path):
+                filenames = listdir(join(self.vector_path, directory))
+                shapefiles = [x for x in filenames if splitext(x)[1] == ".shp"]
                 if len(shapefiles) != 1:
                     raise Exception("The vector data directories must have exactly one shapefile.")
 
@@ -98,14 +98,14 @@ class SemanticSegmentation:
         if self.raster_path == "":
             raise Exception("The raster_path has not been set; run either the set_label_imagery "
                             "or rasterize_vectors first.")
-        elif len(os.listdir(self.raster_path)) == 0:
+        elif len(listdir(self.raster_path)) == 0:
             raise Exception("The raster_path is empty.")
-        elif os.listdir(self.source_path) != os.listdir(self.raster_path):
+        elif listdir(self.source_path) != listdir(self.raster_path):
             raise Exception("Source imagery names do not match label raster names.")
         else:
             for filename in self.source_image_names:
-                source_dataset = gdal.Open(os.path.join(self.source_path, filename))
-                label_dataset = gdal.Open(os.path.join(self.raster_path, filename))
+                source_dataset = gdal.Open(join(self.source_path, filename))
+                label_dataset = gdal.Open(join(self.raster_path, filename))
 
                 # we use a numpy unittest to determine if the geotransforms are almost equal:
                 assert_allclose(source_dataset.GetGeoTransform(), label_dataset.GetGeoTransform())
@@ -135,21 +135,21 @@ class SemanticSegmentation:
             raise Exception("The tile_path attribute has not been specified.")
 
         # check whether tile_path is a directory
-        if os.path.isdir(self.tile_path):
+        if isdir(self.tile_path):
             pass
         else:
             raise Exception(self.tile_path + " is not a directory.")
 
         # check if imagery/labels subdirectories exist
-        tile_path_contents = os.listdir(self.tile_path)
+        tile_path_contents = listdir(self.tile_path)
         if "imagery" in tile_path_contents and "labels" in tile_path_contents:
             pass
         else:
             raise Exception("The tile_path does not have either imagery or labels subdirectories.")
 
         # get the image and label tile names
-        image_tiles = os.listdir(os.path.join(self.tile_path, "imagery"))
-        label_tiles = os.listdir(os.path.join(self.tile_path, "labels"))
+        image_tiles = listdir(join(self.tile_path, "imagery"))
+        label_tiles = listdir(join(self.tile_path, "labels"))
 
         # check if there are equal numbers of imagery/label tiles
         if len(image_tiles) == len(label_tiles):
@@ -175,7 +175,7 @@ class SemanticSegmentation:
 
         # loop through the source imagery and extract relevant metadata
         for filename in self.source_image_names:
-            dst = gdal.Open(os.path.join(self.source_path, filename))
+            dst = gdal.Open(join(self.source_path, filename))
 
             # set metadata fields from the gdal.Dataset object
             metadata_dict = {}
@@ -228,20 +228,20 @@ class SemanticSegmentation:
         self.label_proportion = label_proportion
 
         # create sub-directories for the tiles
-        imagery_tiles_dir = os.path.join(self.tile_path, "imagery")
-        label_tiles_dir = os.path.join(self.tile_path, "labels")
-        if not (os.path.isdir(self.tile_path)):
-            os.mkdir(self.tile_path)
-        if not os.path.isdir(imagery_tiles_dir):
-            os.mkdir(imagery_tiles_dir)
-        if not os.path.isdir(label_tiles_dir):
-            os.mkdir(label_tiles_dir)
+        imagery_tiles_dir = join(self.tile_path, "imagery")
+        label_tiles_dir = join(self.tile_path, "labels")
+        if not (isdir(self.tile_path)):
+            mkdir(self.tile_path)
+        if not isdir(imagery_tiles_dir):
+            mkdir(imagery_tiles_dir)
+        if not isdir(label_tiles_dir):
+            mkdir(label_tiles_dir)
 
         # loop through each source/label raster pair to generate tiles
         for filename in self.source_image_names:
             # open rgb and raster label imagery
-            rgb = gdal.Open(os.path.join(self.source_path, filename))
-            labels = gdal.Open(os.path.join(self.raster_path, filename))
+            rgb = gdal.Open(join(self.source_path, filename))
+            labels = gdal.Open(join(self.raster_path, filename))
 
             # pull out tiles from imagery
             tile_raster_pair(rgb=rgb,
@@ -285,13 +285,13 @@ class SemanticSegmentation:
 
         # loop through the shapefiles in the vectors directory
         for filename in self.data_names:
-            fname = os.path.splitext(filename)[0]
+            fname = splitext(filename)[0]
             # open the source/polygon pair
-            rgb = gdal.Open(os.path.join(self.source_path, filename + ".tif"))
-            polygons = ogr.Open(os.path.join(self.vector_path, fname, fname + ".shp"))
+            rgb = gdal.Open(join(self.source_path, filename + ".tif"))
+            polygons = ogr.Open(join(self.vector_path, fname, fname + ".shp"))
 
             # set the output path
-            output_path = os.path.join(self.raster_path, filename + ".tif")
+            output_path = join(self.raster_path, filename + ".tif")
 
             # rasterize the polygon layer
 
@@ -323,13 +323,13 @@ class SemanticSegmentation:
         """
 
         # create directory if it doesn't already exist
-        if not os.path.isdir(output_path):
-            os.mkdir(output_path)
+        if not isdir(output_path):
+            mkdir(output_path)
 
         # resample the rasters
         for filename in self.source_image_names:
-            resample_dataset(input_path=os.path.join(self.source_path, filename),
-                             output_path=os.path.join(output_path, filename),
+            resample_dataset(input_path=join(self.source_path, filename),
+                             output_path=join(output_path, filename),
                              resample_algorithm=resample_algorithm,
                              target_resolutions=target_resolution)
 
