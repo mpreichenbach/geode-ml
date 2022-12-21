@@ -1,6 +1,6 @@
 # datasets.py
 
-from utilities import rasterize_polygon_layer, resample_dataset, tile_raster_pair
+from geode.utilities import rasterize_polygon_layer, resample_dataset, tile_raster_pair
 from numpy import abs, sum, where
 from numpy.testing import assert_allclose
 
