@@ -17,7 +17,7 @@ class SemanticSegmentation:
                  polygons_path: str = "",
                  labels_path: str = "",
                  tile_dimension: int = 0,
-                 tile_path: str = "",
+                 tiles_path: str = "",
                  dataset_description: str = "",
                  channel_description: str = "",
                  no_data_value: int = 0,
@@ -32,7 +32,7 @@ class SemanticSegmentation:
         self.source_path = source_path
         self.polygons_path = polygons_path
         self.tile_dimension = tile_dimension
-        self.tile_path = tile_path
+        self.tiles_path = tiles_path
         self.data_names = [splitext(x)[0] for x in listdir(source_path)]
         self.no_data_value = no_data_value
         self.burn_value = burn_value
@@ -123,33 +123,33 @@ class SemanticSegmentation:
             None
 
         Raises:
-            Exception: if tile_path has not been specified;
-            Exception: if tile_path is not a directory;
-            Exception: if tile_path doesn't have imagery/labels directories;
+            Exception: if tiles_path has not been specified;
+            Exception: if tiles_path is not a directory;
+            Exception: if tiles_path doesn't have imagery/labels directories;
             Exception: if imagery/label directories have different numbers of files.
             Exception: if imagery/label tile filenames do not match.
         """
 
-        # check whether tile_path has been specified
-        if self.tile_path == "":
-            raise Exception("The tile_path attribute has not been specified.")
+        # check whether tiles_path has been specified
+        if self.tiles_path == "":
+            raise Exception("The tiles_path attribute has not been specified.")
 
-        # check whether tile_path is a directory
-        if isdir(self.tile_path):
+        # check whether tiles_path is a directory
+        if isdir(self.tiles_path):
             pass
         else:
-            raise Exception(self.tile_path + " is not a directory.")
+            raise Exception(self.tiles_path + " is not a directory.")
 
         # check if imagery/labels subdirectories exist
-        tile_path_contents = listdir(self.tile_path)
-        if "imagery" in tile_path_contents and "labels" in tile_path_contents:
+        tiles_path_contents = listdir(self.tiles_path)
+        if "imagery" in tiles_path_contents and "labels" in tiles_path_contents:
             pass
         else:
-            raise Exception("The tile_path does not have either imagery or labels subdirectories.")
+            raise Exception("The tiles_path does not have either imagery or labels subdirectories.")
 
         # get the image and label tile names
-        image_tiles = listdir(join(self.tile_path, "imagery"))
-        label_tiles = listdir(join(self.tile_path, "labels"))
+        image_tiles = listdir(join(self.tiles_path, "imagery"))
+        label_tiles = listdir(join(self.tiles_path, "labels"))
 
         # check if there are equal numbers of imagery/label tiles
         if len(image_tiles) == len(label_tiles):
@@ -220,10 +220,10 @@ class SemanticSegmentation:
         self.label_proportion = label_proportion
 
         # create sub-directories for the tiles
-        imagery_tiles_dir = join(self.tile_path, "imagery")
-        label_tiles_dir = join(self.tile_path, "labels")
-        if not (isdir(self.tile_path)):
-            mkdir(self.tile_path)
+        imagery_tiles_dir = join(self.tiles_path, "imagery")
+        label_tiles_dir = join(self.tiles_path, "labels")
+        if not (isdir(self.tiles_path)):
+            mkdir(self.tiles_path)
         if not isdir(imagery_tiles_dir):
             mkdir(imagery_tiles_dir)
         if not isdir(label_tiles_dir):
@@ -371,7 +371,7 @@ class SemanticSegmentation:
 
         Args:
             batch_size: the number of tile pairs in each batch;
-            use_tiles: if true, uses the files at tile_path; otherwise, it reads tiles from the source/label pairs;
+            use_tiles: if true, uses the files at tiles_path; otherwise, it reads tiles from the source/label pairs;
             perform_one_hot: whether to do a one-hot encoding on the label tiles;
             n_classes: the number of label classes;
             flip_vertically: whether to randomly flip tile pairs vertically;
