@@ -87,25 +87,25 @@ class SemanticSegmentation:
             None
 
         Raises:
-            Exception: if raster_path has not been set;
-            Exception: if raster_path is empty;
+            Exception: if labels_path has not been set;
+            Exception: if labels_path is empty;
             Exception: if label raster names do not match source imagery names;
             Exception: if source/raster width does not match for a particular pair;
             Exception: if source/raster height does not match for a particular pair;
             Exception: if source/raster projections do not match for a particular pair.
         """
 
-        if self.raster_path == "":
-            raise Exception("The raster_path has not been set; run either the set_label_imagery "
+        if self.labels_path == "":
+            raise Exception("The labels_path has not been set; run either the set_label_imagery "
                             "or rasterize_polygons first.")
-        elif len(listdir(self.raster_path)) == 0:
-            raise Exception("The raster_path is empty.")
-        elif listdir(self.source_path) != listdir(self.raster_path):
+        elif len(listdir(self.labels_path)) == 0:
+            raise Exception("The labels_path is empty.")
+        elif listdir(self.source_path) != listdir(self.labels_path):
             raise Exception("Source imagery names do not match label raster names.")
         else:
             for filename in self.source_image_names:
                 source_dataset = gdal.Open(join(self.source_path, filename))
-                label_dataset = gdal.Open(join(self.raster_path, filename))
+                label_dataset = gdal.Open(join(self.labels_path, filename))
 
                 # we use a numpy unittest to determine if the geotransforms are almost equal:
                 assert_allclose(source_dataset.GetGeoTransform(), label_dataset.GetGeoTransform())
@@ -233,7 +233,7 @@ class SemanticSegmentation:
         for filename in self.source_image_names:
             # open rgb and raster label imagery
             rgb = gdal.Open(join(self.source_path, filename))
-            labels = gdal.Open(join(self.raster_path, filename))
+            labels = gdal.Open(join(self.labels_path, filename))
 
             # pull out tiles from imagery
             tile_raster_pair(rgb=rgb,
