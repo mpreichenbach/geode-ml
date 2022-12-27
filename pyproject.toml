@@ -2,16 +2,16 @@
 
 [build-system]
 requires = ["setuptools>=61.0.0", "wheel"]
-backend = "setuptools.build_meta"
+build-backend = "setuptools.build_meta"
 
 [project]
-name = "geode"
+name = "geode-ml"
 version = "0.0.1"
-description = "Classes and methods to help with the creation of training datasets for deep-learning models."
+description = "Classes and methods to help with the creation of geospatial training datasets for deep-learning models."
 readme = "README.md"
 license = {file="LICENSE"}
 authors = [
-    {name = "Matt Reichenbach", email="matthew.p.reichenbach@usace.army.mil"},
+    {name = "Matt Reichenbach", email="matthew.reichenbach@gmail.com"},
 ]
 requires-python = ">=3.7"
 classifiers = [

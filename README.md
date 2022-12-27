@@ -10,10 +10,10 @@ conda activate geode_env
 conda install gdal
 ```
 
-After activating an environment which has **GDAL**, use **pip** to install geode:
+After activating an environment which has **GDAL**, use **pip** to install **geode**:
 
 ```
-pip install geode
+pip install geode-ml
 ```
 
 The Geode Package

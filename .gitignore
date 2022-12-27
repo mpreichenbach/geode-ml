@@ -1,3 +1,4 @@
+dist/
 *.egg-info
 geode/.idea/
 geode/__pycache__/
