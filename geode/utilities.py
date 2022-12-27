@@ -3,7 +3,7 @@
 from numpy import arange, sum, unique
 # from os import mkdir
 from os.path import join, isdir, splitext
-from osgeo.gdal import Dataset,  GDT_Byte, GetDriverByName, RasterizeLayer, Translate, Warp
+from osgeo.gdal import Dataset,  GDT_Byte, GetDriverByName, RasterizeLayer, RasterizeOptions, Translate, Warp
 from osgeo.ogr import DataSource
 # from osgeo.osr import SpatialReference, CoordinateTransformation
 
@@ -64,7 +64,6 @@ def rasterize_polygon_layer(rgb: Dataset,
     polygon_layer = polygons.GetLayer()
 
     # create output raster dataset
-    output_path = join(output_path)
     output_raster = GetDriverByName('GTiff').Create(output_path,
                                                     x_res,
                                                     y_res,
@@ -80,8 +79,8 @@ def rasterize_polygon_layer(rgb: Dataset,
     RasterizeLayer(output_raster,
                    [1],
                    polygon_layer,
-                   burn_values=[burn_value])
-
+                   # burn_values=[burn_value],
+                   RasterizeOptions(attribute="bool"))
     # close connection and write to disk
     output_raster = None
 

@@ -1,17 +1,36 @@
-Geode
-=====
-This package contains methods and classes to process geospatial imagery into useful training data, particularly for deep-learning applications.
+How to Install Geode
+====================
 
-Datasets
---------
+The Geode package depends on **GDAL** for most of its functionality. It is easiest to install **GDAL** using the
+**conda** package manager:
+
+```
+conda create -n "geode_env" python>=3.7
+conda activate geode_env
+conda install gdal
+```
+
+After activating an environment which has **GDAL**, use **pip** to install geode:
+
+```
+pip install geode
+```
+
+The Geode Package
+=================
+This package contains methods and classes to process geospatial imagery into useful training data, particularly for 
+deep-learning applications.
+
+The datasets module
+-------------------
 
 The datasets module currently contains the class:
 
 1. SemanticSegmentation
 	* creates and processes pairs of imagery and label rasters for scenes
 
-Generators
-----------
+The generators module
+---------------------
 
 The generators module currently contains the class:
 
@@ -20,7 +39,8 @@ The generators module currently contains the class:
 	* from_tiles() method reads from generated tile files
 	* from_source() method (in development) reads from the larger source rasters
 
-Utilities
----------
+The utilities module
+--------------------
 
-The utilities module currently contains functions to process geospatial imagery. The dataset classes apply have methods to apply these to batches of files.
+The utilities module currently contains functions to process, single examples of geospatial data. The datasets module
+imports these functions to apply to batches of data; however, this module exists so they they can be used by themselves.
