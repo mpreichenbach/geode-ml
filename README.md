@@ -1,7 +1,7 @@
-How to Install Geode
+How to Install **geode-ml**
 ====================
 
-The Geode package depends on **GDAL** for most of its functionality. It is easiest to install **GDAL** using the
+The **geode-ml** package depends on **GDAL** for most of its functionality. It is easiest to install **GDAL** using the
 **conda** package manager:
 
 ```
@@ -10,13 +10,13 @@ conda activate geode_env
 conda install gdal
 ```
 
-After activating an environment which has **GDAL**, use **pip** to install **geode**:
+After activating an environment which has **GDAL**, use **pip** to install **geode-ml**:
 
 ```
 pip install geode-ml
 ```
 
-The Geode Package
+The **geode-ml** Package
 =================
 This package contains methods and classes to process geospatial imagery into useful training data, particularly for 
 deep-learning applications.
