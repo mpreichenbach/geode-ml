@@ -38,7 +38,7 @@ from osgeo.ogr import DataSource
 def rasterize_polygon_layer(rgb: Dataset,
                             polygons: DataSource,
                             output_path: str,
-                            burn_value: int = 1,
+                            burn_attribute: str,
                             no_data_value: int = 0) -> None:
     """Converts polygon vector layers into rasters of the same size as the source RGB dataset.
 
@@ -46,7 +46,7 @@ def rasterize_polygon_layer(rgb: Dataset,
         rgb: the dataset of RGB imagery;
         polygons: the dataset of the associated polygon layer;
         output_path: filepath for the output dataset;
-        burn_value: the value to write for feature pixels;
+        burn_attribute: the column name in the attribute table of values to write to the raster;
         no_data_value: the value to write for non-feature pixels.
 
     Returns:
@@ -79,8 +79,8 @@ def rasterize_polygon_layer(rgb: Dataset,
     RasterizeLayer(output_raster,
                    [1],
                    polygon_layer,
-                   # burn_values=[burn_value],
-                   RasterizeOptions(attribute="bool"))
+                   options=["ATTRIBUTE={a}".format(a=burn_attribute)])
+
     # close connection and write to disk
     output_raster = None
 

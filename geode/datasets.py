@@ -21,7 +21,7 @@ class SemanticSegmentation:
                  dataset_description: str = "",
                  channel_description: str = "",
                  no_data_value: int = 0,
-                 burn_value: int = 1):
+                 burn_attribute: str = "bool"):
 
         self.channel_description: str = channel_description
         self.dataset_description: str = dataset_description
@@ -35,7 +35,7 @@ class SemanticSegmentation:
         self.tiles_path = tiles_path
         self.data_names = [splitext(x)[0] for x in listdir(source_path)]
         self.no_data_value = no_data_value
-        self.burn_value = burn_value
+        self.burn_attribute = burn_attribute
 
     def check_source(self) -> None:
         """Checks whether the source imagery has been set, and is nonempty.
@@ -290,7 +290,7 @@ class SemanticSegmentation:
             rasterize_polygon_layer(rgb=rgb,
                                     polygons=polygons,
                                     output_path=output_path,
-                                    burn_value=self.burn_value,
+                                    burn_attribute=self.burn_attribute,
                                     no_data_value=self.no_data_value)
 
             if verbose:
