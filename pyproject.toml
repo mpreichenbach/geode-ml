@@ -27,4 +27,4 @@ dependencies = [
 ]
 
 [project.urls]
-"Homepage" = "https://github.com/mpreichenbach/geode"
+"Homepage" = "https://github.com/mpreichenbach/geode-ml"
