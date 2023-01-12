@@ -22,7 +22,7 @@ class Unet(tf.keras.Model):
         super().__init__()
 
         # define the different Unet layers
-        self.input_layer = Input(shape=(None, None, self.n_classes),
+        self.input_layer = Input(shape=(None, None, self.n_channels),
                                  dtype=tf.float32)
 
         self.conv_0 = Conv2D(filters=self.n_filters,
@@ -66,47 +66,99 @@ class Unet(tf.keras.Model):
 
         include_dropout = training and self.dropout_rate == 0.0
 
-        # downsampling path
-        x0 = inputs
+        ##### downsampling path
 
         # level 0
+        d0 = inputs
         for i in range(2):
-            x0 = self.conv_0(x0)
-            x0 = self.dropout if self.dropout_rate > 0.0 else x0
-            x0 = self.batch_normalization(x0)
+            d0 = self.conv_0(d0)
+            d0 = self.dropout if include_dropout else d0
+            d0 = self.batch_normalization(d0)
 
         # level 1
-        x1 = self.max_pooling(x0)
+        d1 = self.max_pooling(d0)
         for i in range(2):
-            x1 = self.conv_1(x1)
-            x1 = self.dropout if self.dropout_rate > 0.0 else x1
-            x1 = self.batch_normalization(x1)
+            d1 = self.conv_1(d1)
+            d1 = self.dropout if include_dropout else d1
+            d1 = self.batch_normalization(d1)
 
         # level 2
-        x2 = self.max_pooling(x1)
+        d2 = self.max_pooling(d1)
         for i in range(4):
-            x2 = self.conv_2(x2)
-            x2 = self.dropout if self.dropout_rate > 0.0 else x2
-            x2 = self.batch_normalization(x2)
+            d2 = self.conv_2(d2)
+            d2 = self.dropout if include_dropout else d2
+            d2 = self.batch_normalization(d2)
 
         # level 3
-        x3 = self.max_pooling(x2)
+        d3 = self.max_pooling(d2)
         for i in range(4):
-            x3 = self.conv_3(x3)
-            x3 = self.dropout if self.dropout_rate > 0.0 else x3
-            x3 = self.batch_normalization(x3)
+            d3 = self.conv_3(d3)
+            d3 = self.dropout if include_dropout else d3
+            d3 = self.batch_normalization(d3)
 
         # level 4
-        x4 = self.max_pooling(x3)
+        d4 = self.max_pooling(d3)
         for i in range(4):
-            x4 = self.conv_3(x4)
-            x4 = self.dropout if self.dropout_rate > 0.0 else x4
-            x4 = self.batch_normalization(x4)
+            d4 = self.conv_3(d4)
+            d4 = self.dropout if include_dropout else d4
+            d4 = self.batch_normalization(d4)
 
         # level 5
-        x5 = self.max_pooling(x4)
-
-        # upsampling path
+        d5 = self.max_pooling(d4)
         for i in range(4):
-            x5 = self.conv_3(x5)
-            x
+            d5 = self.conv_3(d5)
+            d5 = self.dropout if include_dropout else d5
+            d5 = self.batch_normalization(d5)
+
+        ##### upsampling path
+
+        # level 4
+        u4 = self.upsampling(d5)
+        u4 = self.concatenate(axis=-1)([u4, d4])
+        for i in range(4):
+            u4 = self.conv_3(u4)
+            u4 = self.dropout if include_dropout else u4
+            u4 = self.batch_normalization(u4)
+
+        # level 3
+        u3 = self.upsampling(u4)
+        u3 = self.concatenate(axis=-1)([u3, d3])
+        for i in range(4):
+            u3 = self.conv_3(u3)
+            u3 = self.dropout if include_dropout else u3
+            u3 = self.batch_normalization(u3)
+
+        # level 2
+        u2 = self.upsampling(u3)
+        u2 = self.concatenate(axis=-1)([u2, d2])
+        for i in range(4):
+            u2 = self.conv_3(u2)
+            u2 = self.dropout if include_dropout else u2
+            u2 = self.batch_normalization(u2)
+
+        # level 1
+        u1 = self.upsampling(u2)
+        u1 = self.concatenate(axis=-1)([u1, d1])
+        for i in range(2):
+            u1 = self.conv_3(u1)
+            u1 = self.dropout if include_dropout else u1
+            u1 = self.batch_normalization(u1)
+
+        # level 0
+        u0 = self.upsampling(u1)
+        u0 = self.concatenate(axis=-1)([u0, d0])
+        for i in range(2):
+            u0 = self.conv_3(u0)
+            u0 = self.dropout if include_dropout else u0
+            u0 = self.batch_normalization(u0)
+
+        output = self.conv_4(u0)
+
+        return output
+
+    def build_graph(self):
+        x = self.input_layer
+
+        return tf.keras.model(inputs=[x],
+                              outputs=[self.call(x)])
+    
