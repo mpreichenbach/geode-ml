@@ -67,20 +67,46 @@ class Unet(tf.keras.Model):
         include_dropout = training and self.dropout_rate == 0.0
 
         # downsampling path
-        x0 = self.conv_0(inputs)
-        x0 = self.conv_0(x0)
+        x0 = inputs
+
+        # level 0
+        for i in range(2):
+            x0 = self.conv_0(x0)
+            x0 = self.dropout if self.dropout_rate > 0.0 else x0
+            x0 = self.batch_normalization(x0)
+
+        # level 1
         x1 = self.max_pooling(x0)
-        x1 = self.conv_1(x1)
-        x1 = self.conv_1(x1)
+        for i in range(2):
+            x1 = self.conv_1(x1)
+            x1 = self.dropout if self.dropout_rate > 0.0 else x1
+            x1 = self.batch_normalization(x1)
+
+        # level 2
         x2 = self.max_pooling(x1)
         for i in range(4):
             x2 = self.conv_2(x2)
+            x2 = self.dropout if self.dropout_rate > 0.0 else x2
+            x2 = self.batch_normalization(x2)
+
+        # level 3
         x3 = self.max_pooling(x2)
         for i in range(4):
             x3 = self.conv_3(x3)
+            x3 = self.dropout if self.dropout_rate > 0.0 else x3
+            x3 = self.batch_normalization(x3)
+
+        # level 4
         x4 = self.max_pooling(x3)
         for i in range(4):
             x4 = self.conv_3(x4)
+            x4 = self.dropout if self.dropout_rate > 0.0 else x4
+            x4 = self.batch_normalization(x4)
+
+        # level 5
         x5 = self.max_pooling(x4)
 
         # upsampling path
+        for i in range(4):
+            x5 = self.conv_3(x5)
+            x
