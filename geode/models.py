@@ -22,8 +22,8 @@ class Unet(tf.keras.Model):
         super().__init__()
 
         # define the different Unet layers
-        self.input_layer = Input(shape=(None, None, self.n_channels),
-                                 dtype=tf.float32)
+        # self.input_layer = Input(shape=(None, None, self.n_channels),
+        #                          dtype=tf.float32)
 
         # Multiple layer versions are required because they get called on different input shapes
 
@@ -118,104 +118,103 @@ class Unet(tf.keras.Model):
         include_dropout = training and self.dropout_rate == 0.0
         conv_counter = 0
 
-        ##### downsampling path
+        # downsampling path
 
         # level 0
         d0 = input_tensor
         for i in range(2):
             d0 = self.conv_down_0[i](d0)
-            d0 = self.dropout[conv_counter + i](d0) if include_dropout else d0
-            d0 = self.batch_normalization[conv_counter + i](d0)
+            d0 = self.dropout[conv_counter](d0) if include_dropout else d0
+            d0 = self.batch_normalization[conv_counter](d0)
             conv_counter += 1
 
         # level 1
         d1 = self.max_pooling[0](d0)
         for i in range(2):
             d1 = self.conv_down_1[i](d1)
-            d1 = self.dropout[conv_counter + i](d1) if include_dropout else d1
-            d1 = self.batch_normalization[conv_counter + i](d1)
+            d1 = self.dropout[conv_counter](d1) if include_dropout else d1
+            d1 = self.batch_normalization[conv_counter](d1)
             conv_counter += 1
 
         # level 2
         d2 = self.max_pooling[1](d1)
         for i in range(4):
             d2 = self.conv_down_2[i](d2)
-            d2 = self.dropout[conv_counter + i](d2) if include_dropout else d2
-            d2 = self.batch_normalization[conv_counter + i](d2)
+            d2 = self.dropout[conv_counter](d2) if include_dropout else d2
+            d2 = self.batch_normalization[conv_counter](d2)
             conv_counter += 1
 
         # level 3
         d3 = self.max_pooling[2](d2)
         for i in range(4):
             d3 = self.conv_down_3[i](d3)
-            d3 = self.dropout[conv_counter + i](d3) if include_dropout else d3
-            d3 = self.batch_normalization[conv_counter + i](d3)
+            d3 = self.dropout[conv_counter](d3) if include_dropout else d3
+            d3 = self.batch_normalization[conv_counter](d3)
             conv_counter += 1
 
         # level 4
         d4 = self.max_pooling[3](d3)
         for i in range(4):
             d4 = self.conv_down_4[i](d4)
-            d4 = self.dropout[conv_counter + i](d4) if include_dropout else d4
-            d4 = self.batch_normalization[conv_counter + i](d4)
+            d4 = self.dropout[conv_counter](d4) if include_dropout else d4
+            d4 = self.batch_normalization[conv_counter](d4)
             conv_counter += 1
 
         # level 5
         d5 = self.max_pooling[4](d4)
         for i in range(4):
             d5 = self.conv_down_5[i](d5)
-            d5 = self.dropout[conv_counter + i](d5) if include_dropout else d5
-            d5 = self.batch_normalization[conv_counter + i](d5)
+            d5 = self.dropout[conv_counter](d5) if include_dropout else d5
+            d5 = self.batch_normalization[conv_counter](d5)
             conv_counter += 1
 
-        ##### upsampling path
+        # upsampling path
 
         # level 4
         u4 = self.upsampling[4](d5)
-        u4 = self.concatenate[4](axis=-1)([u4, d4])
-        u4 = self.conv_3e(u4)
+        u4 = self.concatenate[4]([u4, d4])
         for i in range(4):
-            u4 = self.conv_3(u4)
-            u4 = self.dropout[conv_counter + i](u4) if include_dropout else u4
-            u4 = self.batch_normalization[conv_counter + i](u4)
+            u4 = self.conv_up_4[i](u4)
+            u4 = self.dropout[conv_counter](u4) if include_dropout else u4
+            u4 = self.batch_normalization[conv_counter](u4)
             conv_counter += 1
 
         # level 3
         u3 = self.upsampling[3](u4)
-        u3 = self.concatenate[3](axis=-1)([u3, d3])
+        u3 = self.concatenate[3]([u3, d3])
         for i in range(4):
-            u3 = self.conv_3(u3)
-            u3 = self.dropout[conv_counter + i](u3) if include_dropout else u3
-            u3 = self.batch_normalization[conv_counter + i](u3)
+            u3 = self.conv_up_3[i](u3)
+            u3 = self.dropout[conv_counter](u3) if include_dropout else u3
+            u3 = self.batch_normalization[conv_counter](u3)
             conv_counter += 1
 
         # level 2
         u2 = self.upsampling[2](u3)
-        u2 = self.concatenate[2](axis=-1)([u2, d2])
+        u2 = self.concatenate[2]([u2, d2])
         for i in range(4):
-            u2 = self.conv_3(u2)
-            u2 = self.dropout[conv_counter + i](u2) if include_dropout else u2
-            u2 = self.batch_normalization[conv_counter + i](u2)
+            u2 = self.conv_up_2[i](u2)
+            u2 = self.dropout[conv_counter](u2) if include_dropout else u2
+            u2 = self.batch_normalization[conv_counter](u2)
             conv_counter += 1
 
         # level 1
         u1 = self.upsampling[1](u2)
-        u1 = self.concatenate[1](axis=-1)([u1, d1])
+        u1 = self.concatenate[1]([u1, d1])
         for i in range(2):
-            u1 = self.conv_3(u1)
-            u1 = self.dropout[conv_counter + i](u1) if include_dropout else u1
-            u1 = self.batch_normalization[conv_counter + i](u1)
+            u1 = self.conv_up_1[i](u1)
+            u1 = self.dropout[conv_counter](u1) if include_dropout else u1
+            u1 = self.batch_normalization[conv_counter](u1)
             conv_counter += 1
 
         # level 0
         u0 = self.upsampling[0](u1)
-        u0 = self.concatenate[0](axis=-1)([u0, d0])
+        u0 = self.concatenate[0]([u0, d0])
         for i in range(2):
-            u0 = self.conv_3(u0)
-            u0 = self.dropout[conv_counter + i](u0) if include_dropout else u0
-            u0 = self.batch_normalization[conv_counter + i](u0)
+            u0 = self.conv_up_0[i](u0)
+            u0 = self.dropout[conv_counter](u0) if include_dropout else u0
+            u0 = self.batch_normalization[conv_counter](u0)
             conv_counter += 1
 
-        output = self.conv_4(u0)
+        output = self.conv_final(u0)
 
         return output
