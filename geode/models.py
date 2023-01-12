@@ -59,9 +59,9 @@ class Unet(tf.keras.Model):
                             activation='relu') for i in range(4)]
 
         self.conv_up_4 = [Conv2D(filters=8 * self.n_filters,
-                            kernel_size=(3, 3),
-                            padding='same',
-                            activation='relu') for i in range(4)]
+                          kernel_size=(3, 3),
+                          padding='same',
+                          activation='relu') for i in range(4)]
 
         self.conv_up_3 = [Conv2D(filters=8 * self.n_filters,
                                  kernel_size=(3, 3),
@@ -90,11 +90,11 @@ class Unet(tf.keras.Model):
 
         # Compute how many dropout and batch-normalization layers are needed
         n_do_bn = len(self.conv_down_0 + self.conv_up_0 +
-                            self.conv_down_1 + self.conv_up_1 +
-                            self.conv_down_2 + self.conv_up_2 +
-                            self.conv_down_3 + self.conv_up_3 +
-                            self.conv_down_4 + self.conv_up_4 +
-                            self.conv_down_5)
+                      self.conv_down_1 + self.conv_up_1 +
+                      self.conv_down_2 + self.conv_up_2 +
+                      self.conv_down_3 + self.conv_up_3 +
+                      self.conv_down_4 + self.conv_up_4 +
+                      self.conv_down_5)
 
         # Max-pooling layers
         self.max_pooling = [MaxPooling2D(pool_size=(2, 2),
