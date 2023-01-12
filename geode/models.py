@@ -49,20 +49,52 @@ class Unet(tf.keras.Model):
                             activation='relu') for i in range(4)]
 
         self.conv_down_4 = [Conv2D(filters=8 * self.n_filters,
-                              kernel_size=(3, 3),
-                              padding='same',
-                              activation='relu') for i in range(4)]
+                            kernel_size=(3, 3),
+                            padding='same',
+                            activation='relu') for i in range(4)]
 
         self.conv_down_5 = [Conv2D(filters=8 * self.n_filters,
-                             kernel_size=(3, 3),
-                             padding='same',
-                             activation='relu') for i in range(4)]
+                            kernel_size=(3, 3),
+                            padding='same',
+                            activation='relu') for i in range(4)]
 
+        self.conv_up_4 = [Conv2D(filters=8 * self.n_filters,
+                            kernel_size=(3, 3),
+                            padding='same',
+                            activation='relu') for i in range(4)]
 
-        self.conv_4a = Conv2D(filters=self.n_classes,
-                             kernel_size=(1, 1),
-                             padding='same',
-                             activation='softmax')
+        self.conv_up_3 = [Conv2D(filters=8 * self.n_filters,
+                                 kernel_size=(3, 3),
+                                 padding='same',
+                                 activation='relu') for i in range(4)]
+
+        self.conv_up_2 = [Conv2D(filters=4 * self.n_filters,
+                                 kernel_size=(3, 3),
+                                 padding='same',
+                                 activation='relu') for i in range(4)]
+
+        self.conv_up_1 = [Conv2D(filters=2 * self.n_filters,
+                                 kernel_size=(3, 3),
+                                 padding='same',
+                                 activation='relu') for i in range(2)]
+
+        self.conv_up_0 = [Conv2D(filters=8 * self.n_filters,
+                                 kernel_size=(3, 3),
+                                 padding='same',
+                                 activation='relu') for i in range(2)]
+
+        self.conv_final = Conv2D(filters=self.n_classes,
+                                 kernel_size=(1, 1),
+                                 padding='same',
+                                 activation='softmax')
+
+        # Compute how many dropout and batch-normalization layers are needed
+        n_do_bn = len(self.conv_down_0 + self.conv_up_0 +
+                            self.conv_down_1 + self.conv_up_1 +
+                            self.conv_down_2 + self.conv_up_2 +
+                            self.conv_down_3 + self.conv_up_3 +
+                            self.conv_down_4 + self.conv_up_4 +
+                            self.conv_down_5)
 
         # Max-pooling layers
         self.max_pooling = [MaxPooling2D(pool_size=(2, 2),
@@ -72,22 +104,19 @@ class Unet(tf.keras.Model):
         self.upsampling = [UpSampling2D(size=(2, 2)) for i in range(5)]
 
         # Batch normalization layers
-        self.batch_normalization_down = [BatchNormalization() for i in range(len(self.conv_down_0 +
-                                                                                 self.conv_down_1 +
-                                                                                 self.conv_down_2 +
-                                                                                 self.conv_down_3 +
-                                                                                 self.conv_down_4 +
-                                                                                 self.conv_down_5))]
+        self.batch_normalization = [BatchNormalization() for i in range(n_do_bn)]
 
-        # 
-        self.concatenate = Concatenate(axis=-1)
+        # Dropout layers
+        self.dropout = [Dropout(rate=self.dropout_rate) for i in range(n_do_bn)]
 
-        self.dropout = Dropout(rate=self.dropout_rate)
+        # Concatenate layers
+        self.concatenate = [Concatenate(axis=-1) for i in range(5)]
 
     def call(self, input_tensor,
-                 training=True):
+             training=True):
 
         include_dropout = training and self.dropout_rate == 0.0
+        conv_counter = 0
 
         ##### downsampling path
 
@@ -95,86 +124,97 @@ class Unet(tf.keras.Model):
         d0 = input_tensor
         for i in range(2):
             d0 = self.conv_down_0[i](d0)
-            d0 = self.dropout_down_0[i](d0) if include_dropout else d0
-            d0 = self.batch_normalization_down[i](d0)
+            d0 = self.dropout[conv_counter + i](d0) if include_dropout else d0
+            d0 = self.batch_normalization[conv_counter + i](d0)
+            conv_counter += 1
 
         # level 1
         d1 = self.max_pooling[0](d0)
         for i in range(2):
             d1 = self.conv_down_1[i](d1)
-            d1 = self.dropout_down_1[i](d1) if include_dropout else d1
-            d1 = self.batch_normalization_down[i](d1)
+            d1 = self.dropout[conv_counter + i](d1) if include_dropout else d1
+            d1 = self.batch_normalization[conv_counter + i](d1)
+            conv_counter += 1
 
         # level 2
         d2 = self.max_pooling[1](d1)
         for i in range(4):
             d2 = self.conv_down_2[i](d2)
-            d2 = self.dropout_down_2[i](d2) if include_dropout else d2
-            d2 = self.batch_normalization_down[i](d2)
+            d2 = self.dropout[conv_counter + i](d2) if include_dropout else d2
+            d2 = self.batch_normalization[conv_counter + i](d2)
+            conv_counter += 1
 
         # level 3
         d3 = self.max_pooling[2](d2)
         for i in range(4):
             d3 = self.conv_down_3[i](d3)
-            d3 = self.dropout_down_3[i](d3) if include_dropout else d3
-            d3 = self.batch_normalization_down[i](d3)
+            d3 = self.dropout[conv_counter + i](d3) if include_dropout else d3
+            d3 = self.batch_normalization[conv_counter + i](d3)
+            conv_counter += 1
 
         # level 4
         d4 = self.max_pooling[3](d3)
         for i in range(4):
             d4 = self.conv_down_4[i](d4)
-            d4 = self.dropout_down_4[i](d4) if include_dropout else d4
-            d4 = self.batch_normalization_down[i](d4)
+            d4 = self.dropout[conv_counter + i](d4) if include_dropout else d4
+            d4 = self.batch_normalization[conv_counter + i](d4)
+            conv_counter += 1
 
         # level 5
         d5 = self.max_pooling[4](d4)
         for i in range(4):
             d5 = self.conv_down_5[i](d5)
-            d5 = self.dropout_down_5[i](d5) if include_dropout else d5
-            d5 = self.batch_normalization_down[i](d5)
+            d5 = self.dropout[conv_counter + i](d5) if include_dropout else d5
+            d5 = self.batch_normalization[conv_counter + i](d5)
+            conv_counter += 1
 
         ##### upsampling path
 
         # level 4
-        u4 = self.upsampling(d5)
-        u4 = self.concatenate(axis=-1)([u4, d4])
+        u4 = self.upsampling[4](d5)
+        u4 = self.concatenate[4](axis=-1)([u4, d4])
         u4 = self.conv_3e(u4)
         for i in range(4):
             u4 = self.conv_3(u4)
-            u4 = self.dropout if include_dropout else u4
-            u4 = self.batch_normalization(u4)
+            u4 = self.dropout[conv_counter + i](u4) if include_dropout else u4
+            u4 = self.batch_normalization[conv_counter + i](u4)
+            conv_counter += 1
 
         # level 3
-        u3 = self.upsampling(u4)
-        u3 = self.concatenate(axis=-1)([u3, d3])
+        u3 = self.upsampling[3](u4)
+        u3 = self.concatenate[3](axis=-1)([u3, d3])
         for i in range(4):
             u3 = self.conv_3(u3)
-            u3 = self.dropout if include_dropout else u3
-            u3 = self.batch_normalization(u3)
+            u3 = self.dropout[conv_counter + i](u3) if include_dropout else u3
+            u3 = self.batch_normalization[conv_counter + i](u3)
+            conv_counter += 1
 
         # level 2
-        u2 = self.upsampling(u3)
-        u2 = self.concatenate(axis=-1)([u2, d2])
+        u2 = self.upsampling[2](u3)
+        u2 = self.concatenate[2](axis=-1)([u2, d2])
         for i in range(4):
             u2 = self.conv_3(u2)
-            u2 = self.dropout if include_dropout else u2
-            u2 = self.batch_normalization(u2)
+            u2 = self.dropout[conv_counter + i](u2) if include_dropout else u2
+            u2 = self.batch_normalization[conv_counter + i](u2)
+            conv_counter += 1
 
         # level 1
-        u1 = self.upsampling(u2)
-        u1 = self.concatenate(axis=-1)([u1, d1])
+        u1 = self.upsampling[1](u2)
+        u1 = self.concatenate[1](axis=-1)([u1, d1])
         for i in range(2):
             u1 = self.conv_3(u1)
-            u1 = self.dropout if include_dropout else u1
-            u1 = self.batch_normalization(u1)
+            u1 = self.dropout[conv_counter + i](u1) if include_dropout else u1
+            u1 = self.batch_normalization[conv_counter + i](u1)
+            conv_counter += 1
 
         # level 0
-        u0 = self.upsampling(u1)
-        u0 = self.concatenate(axis=-1)([u0, d0])
+        u0 = self.upsampling[0](u1)
+        u0 = self.concatenate[0](axis=-1)([u0, d0])
         for i in range(2):
             u0 = self.conv_3(u0)
-            u0 = self.dropout if include_dropout else u0
-            u0 = self.batch_normalization(u0)
+            u0 = self.dropout[conv_counter + i](u0) if include_dropout else u0
+            u0 = self.batch_normalization[conv_counter + i](u0)
+            conv_counter += 1
 
         output = self.conv_4(u0)
 
