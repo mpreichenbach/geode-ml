@@ -25,43 +25,66 @@ class Unet(tf.keras.Model):
         self.input_layer = Input(shape=(None, None, self.n_channels),
                                  dtype=tf.float32)
 
-        self.conv_0 = Conv2D(filters=self.n_filters,
+        # Multiple layer versions are required because they get called on different input shapes
+
+        # Dowsampling-path convolutional layers
+        self.conv_down_0 = [Conv2D(filters=self.n_filters,
+                            kernel_size=(3, 3),
+                            padding='same',
+                            activation='relu') for i in range(2)]
+
+        self.conv_down_1 = [Conv2D(filters=2 * self.n_filters,
+                            kernel_size=(3, 3),
+                            padding='same',
+                            activation='relu') for i in range(2)]
+
+        self.conv_down_2 = [Conv2D(filters=4 * self.n_filters,
+                            kernel_size=(3, 3),
+                            padding='same',
+                            activation='relu') for i in range(4)]
+
+        self.conv_down_3 = [Conv2D(filters=8 * self.n_filters,
+                            kernel_size=(3, 3),
+                            padding='same',
+                            activation='relu') for i in range(4)]
+
+        self.conv_down_4 = [Conv2D(filters=8 * self.n_filters,
+                              kernel_size=(3, 3),
+                              padding='same',
+                              activation='relu') for i in range(4)]
+
+        self.conv_down_5 = [Conv2D(filters=8 * self.n_filters,
                              kernel_size=(3, 3),
                              padding='same',
-                             activation='relu')
+                             activation='relu') for i in range(4)]
 
-        self.conv_1 = Conv2D(filters=2 * self.n_filters,
-                             kernel_size=(3, 3),
-                             padding='same',
-                             activation='relu')
 
-        self.conv_2 = Conv2D(filters=4 * self.n_filters,
-                             kernel_size=(3, 3),
-                             padding='same',
-                             activation='relu')
-
-        self.conv_3 = Conv2D(filters=8 * self.n_filters,
-                             kernel_size=(3, 3),
-                             padding='same',
-                             activation='relu')
-
-        self.conv_4 = Conv2D(filters=self.n_classes,
+        self.conv_4a = Conv2D(filters=self.n_classes,
                              kernel_size=(1, 1),
                              padding='same',
                              activation='softmax')
 
-        self.max_pooling = MaxPooling2D(pool_size=(2, 2),
-                                        padding='same')
+        # Max-pooling layers
+        self.max_pooling = [MaxPooling2D(pool_size=(2, 2),
+                                         padding='same') for i in range(5)]
 
-        self.upsampling = UpSampling2D(size=(2, 2))
+        # Upsampling layers
+        self.upsampling = [UpSampling2D(size=(2, 2)) for i in range(5)]
 
-        self.batch_normalization = BatchNormalization()
+        # Batch normalization layers
+        self.batch_normalization_down = [BatchNormalization() for i in range(len(self.conv_down_0 +
+                                                                                 self.conv_down_1 +
+                                                                                 self.conv_down_2 +
+                                                                                 self.conv_down_3 +
+                                                                                 self.conv_down_4 +
+                                                                                 self.conv_down_5))]
 
+        # 
         self.concatenate = Concatenate(axis=-1)
 
         self.dropout = Dropout(rate=self.dropout_rate)
 
-    def call(self, inputs,
+    def call(self, input_tensor,
                  training=True):
 
         include_dropout = training and self.dropout_rate == 0.0
@@ -69,52 +92,53 @@ class Unet(tf.keras.Model):
         ##### downsampling path
 
         # level 0
-        d0 = inputs
+        d0 = input_tensor
         for i in range(2):
-            d0 = self.conv_0(d0)
-            d0 = self.dropout if include_dropout else d0
-            d0 = self.batch_normalization(d0)
+            d0 = self.conv_down_0[i](d0)
+            d0 = self.dropout_down_0[i](d0) if include_dropout else d0
+            d0 = self.batch_normalization_down[i](d0)
 
         # level 1
-        d1 = self.max_pooling(d0)
+        d1 = self.max_pooling[0](d0)
         for i in range(2):
-            d1 = self.conv_1(d1)
-            d1 = self.dropout if include_dropout else d1
-            d1 = self.batch_normalization(d1)
+            d1 = self.conv_down_1[i](d1)
+            d1 = self.dropout_down_1[i](d1) if include_dropout else d1
+            d1 = self.batch_normalization_down[i](d1)
 
         # level 2
-        d2 = self.max_pooling(d1)
+        d2 = self.max_pooling[1](d1)
         for i in range(4):
-            d2 = self.conv_2(d2)
-            d2 = self.dropout if include_dropout else d2
-            d2 = self.batch_normalization(d2)
+            d2 = self.conv_down_2[i](d2)
+            d2 = self.dropout_down_2[i](d2) if include_dropout else d2
+            d2 = self.batch_normalization_down[i](d2)
 
         # level 3
-        d3 = self.max_pooling(d2)
+        d3 = self.max_pooling[2](d2)
         for i in range(4):
-            d3 = self.conv_3(d3)
-            d3 = self.dropout if include_dropout else d3
-            d3 = self.batch_normalization(d3)
+            d3 = self.conv_down_3[i](d3)
+            d3 = self.dropout_down_3[i](d3) if include_dropout else d3
+            d3 = self.batch_normalization_down[i](d3)
 
         # level 4
-        d4 = self.max_pooling(d3)
+        d4 = self.max_pooling[3](d3)
         for i in range(4):
-            d4 = self.conv_3(d4)
-            d4 = self.dropout if include_dropout else d4
-            d4 = self.batch_normalization(d4)
+            d4 = self.conv_down_4[i](d4)
+            d4 = self.dropout_down_4[i](d4) if include_dropout else d4
+            d4 = self.batch_normalization_down[i](d4)
 
         # level 5
-        d5 = self.max_pooling(d4)
+        d5 = self.max_pooling[4](d4)
         for i in range(4):
-            d5 = self.conv_3(d5)
-            d5 = self.dropout if include_dropout else d5
-            d5 = self.batch_normalization(d5)
+            d5 = self.conv_down_5[i](d5)
+            d5 = self.dropout_down_5[i](d5) if include_dropout else d5
+            d5 = self.batch_normalization_down[i](d5)
 
         ##### upsampling path
 
         # level 4
         u4 = self.upsampling(d5)
         u4 = self.concatenate(axis=-1)([u4, d4])
+        u4 = self.conv_3e(u4)
         for i in range(4):
             u4 = self.conv_3(u4)
             u4 = self.dropout if include_dropout else u4
@@ -155,10 +179,3 @@ class Unet(tf.keras.Model):
         output = self.conv_4(u0)
 
         return output
-
-    def build_graph(self):
-        x = self.input_layer
-
-        return tf.keras.model(inputs=[x],
-                              outputs=[self.call(x)])
-    
