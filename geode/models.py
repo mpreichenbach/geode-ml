@@ -218,4 +218,3 @@ class Unet(tf.keras.Model):
         output = self.conv_final(u0)
 
         return output
-
