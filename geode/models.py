@@ -21,6 +21,7 @@ class Unet(tf.keras.Model):
         # initialize the Model superclass
         super().__init__()
 
+
         # Multiple layer versions are required because they get called on different input shapes
 
         # Dowsampling-path convolutional layers
