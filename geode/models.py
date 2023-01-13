@@ -21,10 +21,6 @@ class Unet(tf.keras.Model):
         # initialize the Model superclass
         super().__init__()
 
-        # define the different Unet layers
-        # self.input_layer = Input(shape=(None, None, self.n_channels),
-        #                          dtype=tf.float32)
-
         # Multiple layer versions are required because they get called on different input shapes
 
         # Dowsampling-path convolutional layers
@@ -218,3 +214,4 @@ class Unet(tf.keras.Model):
         output = self.conv_final(u0)
 
         return output
+
