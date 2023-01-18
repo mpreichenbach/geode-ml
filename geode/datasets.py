@@ -1,11 +1,13 @@
 # datasets.py
 
-from geode.utilities import rasterize_polygon_layer, resample_dataset, tile_raster_pair
-from numpy import abs
+from geode.utilities import convert_labels_to_one_hots, rasterize_polygon_layer, resample_dataset, tile_raster_pair
+from numpy import abs, array, flip, rot90
 from numpy.testing import assert_allclose
+from numpy.random import randint, shuffle
 from os import listdir, mkdir
 from os.path import isdir, join, splitext
 from osgeo import gdal, ogr
+
 
 
 class SemanticSegmentation:
@@ -361,7 +363,6 @@ class SemanticSegmentation:
         self.check_polygons()
 
     def training_generator(self, batch_size: int,
-                           use_tiles: bool = True,
                            perform_one_hot: bool = True,
                            n_classes: int = 2,
                            flip_vertically: bool = True,
@@ -371,7 +372,6 @@ class SemanticSegmentation:
 
         Args:
             batch_size: the number of tile pairs in each batch;
-            use_tiles: if true, uses the files at tiles_path; otherwise, it reads tiles from the source/label pairs;
             perform_one_hot: whether to do a one-hot encoding on the label tiles;
             n_classes: the number of label classes;
             flip_vertically: whether to randomly flip tile pairs vertically;
@@ -385,4 +385,38 @@ class SemanticSegmentation:
             Exception: if perform_one_hot is False and n_classes is not an integer greater than 1.
         """
 
-        # this method will be developed later
+        filenames = listdir(join(self.tiles_path, "imagery"))
+        train_ids = range(len(filenames))
+        while True:
+            shuffle(filenames)
+            for start in range(0, len(train_ids), batch_size):
+                imagery_batch = []
+                labels_batch = []
+                end = min(start + batch_size, len(filenames))
+                batch_ids = train_ids[start:end]
+
+                for ID in batch_ids:
+                    img = gdal.Open(join(self.tiles_path, "imagery", filenames[ID])).ReadAsArray()
+                    lbl = gdal.Open(join(self.tiles_path, "labels", filenames[ID])).ReadAsArray()
+
+                    if rotate:
+                        k_rot = randint(0, 4)
+                        img = rot90(img, k=k_rot)
+                        lbl = rot90(lbl, k=k_rot)
+
+                    if flip_vertically and randint(0, 2) == 1:
+                        img = flip(img, axis=0)
+                        lbl = flip(lbl, axis=0)
+
+                    if perform_one_hot:
+                        lbl = convert_labels_to_one_hots(lbl, n_classes)
+
+                    img = img * scale_factor
+
+                    imagery_batch.append(img)
+                    labels_batch.append(lbl)
+
+                imagery_batch = array(imagery_batch)
+                labels_batch = array(labels_batch)
+
+                yield imagery_batch, labels_batch

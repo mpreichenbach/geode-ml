@@ -1,14 +1,31 @@
 # models.py
 
+from geode.datasets import Training
 import tensorflow as tf
-from tensorflow.keras.layers import BatchNormalization, Concatenate, Conv2D, Dropout, Input, MaxPooling2D, UpSampling2D
+from tensorflow.keras.layers import BatchNormalization, Concatenate, Conv2D, Dropout, MaxPooling2D, UpSampling2D
 
+
+
+class GeodeModel(tf.keras.Model):
+
+    def __init__(self, n_channels: int,
+                 training_data_path: str,
+                 testing_data_path: str):
+
+        self.n_channels = n_channels
+        self.training_data_path = training_data_path
+        self.testing_data_path = testing_data_path
+
+        super().__init__()
+
+    def fit(self):
+
+        super().fit(x=Trai
 
 
 class Unet(tf.keras.Model):
 
-    def __init__(self, n_channels: int = 3,
-                 n_classes: int = 2,
+    def __init__(self, n_classes: int = 2,
                  n_filters: int = 64,
                  dropout_rate: float = 0.2):
 

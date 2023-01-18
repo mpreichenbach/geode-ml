@@ -1,39 +1,22 @@
 # utilities.py
 
-from numpy import arange, sum, unique
+from numpy import arange, sum, uint8, unique, zeros
 # from os import mkdir
-from os.path import join, isdir, splitext
-from osgeo.gdal import Dataset,  GDT_Byte, GetDriverByName, RasterizeLayer, RasterizeOptions, Translate, Warp
+from os.path import join, splitext
+from osgeo.gdal import Dataset,  GDT_Byte, GetDriverByName, RasterizeLayer, Translate, Warp
 from osgeo.ogr import DataSource
 # from osgeo.osr import SpatialReference, CoordinateTransformation
 
 
-# def get_osm_layer(rgb: Dataset,
-#                   output_path: str,
-#                   filename: str):
-#     """Documentation forthcoming for this function."""
-#
-#     # create folder to hold polygon data
-#     if not isdir(join(output_path, filename)):
-#         mkdir(join(output_path, filename))
-#
-#     # extract bounding box coordinates for OSM query
-#     ulx, xres, _, uly, _, yres = rgb.GetGeoTransform()
-#     lrx = ulx + (rgb.RasterXSize * xres)
-#     lry = uly + (rgb.RasterYSize * yres)
-#
-#     # define the source and target projections to enable conversion to lat/long coordinates
-#     source = SpatialReference()
-#     source.ImportFromWkt(rgb.GetProjection())
-#
-#     target = SpatialReference()
-#     target.ImportFromEPSG(4326)
-#
-#     transform = CoordinateTransformation(source, target)
-#
-#     # get bounding box coordinates in lat/long
-#     north, west, _ = list(transform.TransformPoint(ulx, uly))
-#     south, east, _ = list(transform.TransformPoint(lrx, lry))
+def convert_labels_to_one_hots(label_array, n_classes):
+    """Converts integer labels with shape (n_images, height, width) to one-hot encodings."""
+
+    enc = zeros(label_array.shape + (n_classes,), dtype=uint8)
+
+    for i in range(n_classes):
+        enc[:, :, i][label_array == i] = 1
+
+    return enc
 
 def rasterize_polygon_layer(rgb: Dataset,
                             polygons: DataSource,
