@@ -1,11 +1,9 @@
 # utilities.py
 
 from numpy import arange, argmax, sum, uint8, unique, zeros
-# from os import mkdir
 from os.path import join, splitext
 from osgeo.gdal import Dataset,  GDT_Byte, GetDriverByName, RasterizeLayer, Translate, Warp
 from osgeo.ogr import DataSource
-# from osgeo.osr import SpatialReference, CoordinateTransformation
 
 
 def convert_labels_to_one_hots(label_array, n_classes):
