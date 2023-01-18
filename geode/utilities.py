@@ -1,9 +1,10 @@
 # utilities.py
 
-from numpy import arange, argmax, sum, uint8, unique, zeros
+from numpy import arange, argmax, expand_dims, moveaxis, pad, squeeze, sum, uint8, unique, zeros
 from os.path import join, splitext
 from osgeo.gdal import Dataset,  GDT_Byte, GetDriverByName, RasterizeLayer, Translate, Warp
 from osgeo.ogr import DataSource
+from tensorflow.keras import Model
 
 
 def convert_labels_to_one_hots(label_array, n_classes):
@@ -20,6 +21,149 @@ def convert_vectors_to_labels(oh_array):
     output = argmax(oh_array, axis=-1).astype(uint8)
 
     return output
+
+def predict_raster(self, input_dataset: Dataset,
+                   model: Model,
+                   tile_dim: int=1024) -> None:
+        """Performs the inference using the loaded model, and reads tiles one-by-one from the input dataset, to avoid
+        overrunning the RAM by reading the entire raster into memory. Performs inference on four regions, denoted by A,
+        B, C, and D.
+
+        Returns:
+            None
+        """
+
+        # get the input raster dimensions and tile size
+        input_width = input_dataset.RasterXSize
+        input_height = input_dataset.RasterYSize
+        n_bands = input_dataset.RasterCount
+
+        # get the dimensions of Region A
+        n_col = int(input_width / tile_dim)
+        n_row = int(input_height / tile_dim)
+        a_width = tile_dim * n_col
+        a_height = tile_dim * n_row
+
+        # get the dimensions of Region B
+        b_width = input_width - a_width
+        b_tile_pads = ((0, 0), (0, 0), (0, tile_dim - b_width))
+
+        # get the dimensions of Region C
+        c_height = input_height - a_height
+        c_tile_pads = ((0, 0), (0, tile_dim - c_height), (0, 0))
+
+        # get the dimensions of Region D
+        d_width = b_width
+        d_height = c_height
+        d_tile_pads = ((0, 0), (0, tile_dim - c_height), (0, tile_dim - b_width))
+
+        # initialize the predictions array
+        pred = zeros((input_height, input_width), dtype=uint8)
+
+        # perform inference over Region A
+        for row in range(n_row):
+            y_start = row * tile_dim
+            for col in range(n_col):
+                x_start = col * tile_dim
+                tile = input_dataset.ReadAsArray(xoff=int(x_start),
+                                                 yoff=int(y_start),
+                                                 xsize=tile_dim,
+                                                 ysize=tile_dim)
+
+                # reshape to (1, height, width, channels) format for model.predict method
+                tile = expand_dims(moveaxis(tile,
+                                            source=0,
+                                            destination=2),
+                                   axis=0)
+                pred_tile = argmax(squeeze(model.predict(tile)), axis=-1).astype(uint8)
+
+                # store the predictions into the initialized array
+                pred[y_start:(y_start + tile_dim), x_start:(x_start + tile_dim)] = pred_tile
+
+        # perform inference over Region B
+        if b_width == 0:
+            pass
+        else:
+            x_start = input_width - tile_dim
+            for row in range(n_row):
+                y_start = row * tile_dim
+                tile = input_dataset.ReadAsArray(xoff=int(x_start),
+                                                 yoff=int(y_start),
+                                                 xsize=tile_dim,
+                                                 ysize=tile_dim)
+
+                # pad values over right edge, reshape tile to correct format
+                tile = pad(tile,
+                           pad_width=b_tile_pads,
+                           mode='reflect')
+                tile = tile[:, :, -tile_dim:]
+                tile = expand_dims(moveaxis(tile,
+                                            source=0,
+                                            destination=2),
+                                   axis=0)
+                tile = tile.reshape((1, tile_dim, tile_dim, n_bands))
+
+                # perform inference, remove padding, and update the full prediction array
+                pred_tile = argmax(squeeze(model.predict(tile)), axis=-1).astype(uint8)
+                pred_tile = pred_tile[:, 0:b_width]
+                pred[y_start:(y_start + tile_dim), (input_width - b_width):input_width] = pred_tile
+
+        # perform inference over Region C
+        if c_height == 0:
+            pass
+        else:
+            y_start = input_height - tile_dim
+            for col in range(n_col):
+                x_start = col * tile_dim
+                tile = input_dataset.ReadAsArray(xoff=int(x_start),
+                                                 yoff=int(y_start),
+                                                 xsize=tile_dim,
+                                                 ysize=tile_dim)
+
+                # pad values over the bottom edge, reshape tile to correct format
+                tile = pad(tile,
+                           pad_width=c_tile_pads,
+                           mode='reflect')
+                tile = tile[:, -tile_dim:, :]
+                tile = expand_dims(moveaxis(tile,
+                                            source=0,
+                                            destination=2),
+                                   axis=0)
+                tile = tile.reshape((1, tile_dim, tile_dim, n_bands))
+
+                # perform inference
+                pred_tile = argmax(squeeze(model.predict(tile)), axis=-1).astype(uint8)
+                pred_tile = pred_tile[0:c_height, :]
+                pred[(input_height - c_height):input_height, x_start:(x_start + tile_dim)] = pred_tile
+
+        # perform inference over Region D
+        if b_width == 0 or c_height == 0:
+            pass
+        else:
+            x_start = input_width - tile_dim
+            y_start = input_height - tile_dim
+            tile = input_dataset.ReadAsArray(xoff=int(x_start),
+                                             yoff=int(y_start),
+                                             xsize=tile_dim,
+                                             ysize=tile_dim)
+
+            # pad values over the right and bottom edges, reshape to correct tile format
+            tile = pad(tile,
+                       pad_width=d_tile_pads,
+                       mode='reflect')
+            tile = tile[:, -tile_dim:, -tile_dim:]
+            tile = expand_dims(moveaxis(tile,
+                                        source=0,
+                                        destination=2),
+                               axis=0)
+            tile = tile.reshape((1, tile.shape[1], tile.shape[2], n_bands))
+
+            # perform inference
+            pred_tile = argmax(squeeze(model.predict(tile)), axis=-1).astype(uint8)
+            pred_tile = pred_tile[0:c_height, 0:b_width]
+            pred[(input_height - d_height):input_height, (input_width - d_width):input_width] = pred_tile
+
+        predicted_array = pred
 
 def rasterize_polygon_layer(rgb: Dataset,
                             polygons: DataSource,
