@@ -1,6 +1,6 @@
 # utilities.py
 
-from numpy import arange, sum, uint8, unique, zeros
+from numpy import arange, argmax, sum, uint8, unique, zeros
 # from os import mkdir
 from os.path import join, splitext
 from osgeo.gdal import Dataset,  GDT_Byte, GetDriverByName, RasterizeLayer, Translate, Warp
@@ -17,6 +17,11 @@ def convert_labels_to_one_hots(label_array, n_classes):
         enc[:, :, i][label_array == i] = 1
 
     return enc
+
+def convert_vectors_to_labels(oh_array):
+    output = argmax(oh_array, axis=-1).astype(uint8)
+
+    return output
 
 def rasterize_polygon_layer(rgb: Dataset,
                             polygons: DataSource,
