@@ -1,18 +1,31 @@
 # models.py
 
 import geode.metrics as gm
+from geode.utilities import predict_raster
 from os import listdir
+from os.path import join
+from osgeo.gdal import Open
 import tensorflow as tf
 from tensorflow.keras.layers import BatchNormalization, Concatenate, Conv2D, Dropout, MaxPooling2D, UpSampling2D
 
 
 class SegmentationModel(tf.keras.Model):
 
-    def __init__(self):
+    def __init__(self, test_imagery_path: str,
+                 test_labels_path: str,
+                 test_predictions_path: ""):
 
         self.metrics = {}
+        self.test_imagery_path = test_imagery_path
+        self.test_labels_path = test_labels_path
+        self.test_predictions_path = test_predictions_path
 
-        super.__init__()
+        super().__init__()
+
+        if set(listdir(self.test_imagery_path)) == set(listdir(self.test_labels_path)):
+            pass
+        else:
+            raise Exception("The test imagery and labels must have identical filenames.")
 
     def compute_metrics(self, test_imagery_path: str,
                         test_labels_path: str,
@@ -22,20 +35,11 @@ class SegmentationModel(tf.keras.Model):
         Args:
             test_imagery_path: the directory containing the test imagery;
             test_labels_path: the directory containing the test labels;
-            predictions_path: the directory in which to
+            predictions_path: the directory in which to save predicted rasters.
 
         Returns:
              A dictionary containing various calculated metrics.
         """
-
-        # check that imagery and label filenames match
-        if set(listdir(test_imagery_path)) == set(listdir(test_labels_path)):
-            filenames = listdir(test_imagery_path)
-        else:
-            raise Exception("The imagery and label filenames do not match.")
-
-        # generate predictions
-
 
         # define metric names for column headers
         precision_names = [name + " precision" for name in self.class_names]
@@ -82,8 +86,32 @@ class SegmentationModel(tf.keras.Model):
             if verbose:
                 print("Confusion table for " + data_name + " generated in " + str(confusion_time) + " seconds.")
 
+    def predict_test_imagery(self, verbose=True) -> None:
+        """Predicts the test imagery in the supplied path.
 
-class Unet(tf.keras.Model):
+        Returns:
+            None
+        """
+
+        # get filenames
+        filenames = listdir(self.test_imagery_path)
+
+        # loop through the files in test_imagery_path
+        for fname in filenames:
+            rgb = Open(join(self.test_imagery_path, fname))
+
+            predict_raster(input_dataset=rgb,
+                           model=self,
+                           output_path=join(self.test_predictions_path, fname))
+
+            # close the input dataset
+            rgb = None
+
+            # print status if required
+            if verbose:
+                print("Prediction finished for", fname + ".")
+
+class Unet(SegmentationModel):
 
     def __init__(self, n_channels: int = 3,
                  n_classes: int = 2,
@@ -91,7 +119,6 @@ class Unet(tf.keras.Model):
                  dropout_rate: float = 0.2):
 
         # define attributes
-        self.metrics = {}
         self.n_channels = n_channels
         self.n_classes = n_classes
         self.n_filters = n_filters
