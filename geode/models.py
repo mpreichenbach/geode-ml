@@ -2,8 +2,9 @@
 
 import geode.metrics as gm
 from geode.utilities import predict_raster
-from os import listdir
-from os.path import join
+from numpy import unique
+from os import listdir, makedirs
+from os.path import isdir, join
 from osgeo.gdal import Open
 import tensorflow as tf
 from tensorflow.keras.layers import BatchNormalization, Concatenate, Conv2D, Dropout, MaxPooling2D, UpSampling2D
@@ -23,42 +24,39 @@ class SegmentationModel(tf.keras.Model):
         super().__init__()
 
         if set(listdir(self.test_imagery_path)) == set(listdir(self.test_labels_path)):
-            pass
+            self.filenames = listdir(self.test_imagery_path)
+            if len(self.filenames) == 0:
+                raise Exception("There is no test imagery.")
         else:
             raise Exception("The test imagery and labels must have identical filenames.")
 
-    def compute_metrics(self, test_imagery_path: str,
-                        test_labels_path: str,
-                        predictions_path: "") -> dict:
+    def compute_metrics(self) -> dict:
         """Computes various metrics on a test dataset; paired images and labels should have identical filenames.
 
-        Args:
-            test_imagery_path: the directory containing the test imagery;
-            test_labels_path: the directory containing the test labels;
-            predictions_path: the directory in which to save predicted rasters.
-
         Returns:
-             A dictionary containing various calculated metrics.
+             A dictionary containing various calculated metrics for each test raster.
+
+        Raises:
+            Exception: if there are no predicted rasters at test_predictions_path.
         """
 
-        # define metric names for column headers
-        precision_names = [name + " precision" for name in self.class_names]
-        recall_names = [name + " recall" for name in self.class_names]
-        jaccard_names = [name + " Jaccard Score" for name in self.class_names]
-        f1_names = [name + "  F1 Score" for name in self.class_names]
+        # check that there are predictions
+        if len(listdir(self.test_predictions_path)) == 0:
+            raise Exception("No predicted imagery has been generated.")
 
-        # define dataframes to hold appropriate metrics
-        df_precision = pd.DataFrame(index=self.test_names, columns=precision_names)
-        df_recall = pd.DataFrame(index=self.test_names, columns=recall_names)
-        df_jaccard = pd.DataFrame(index=self.test_names, columns=jaccard_names)
-        df_f1 = pd.DataFrame(index=self.test_names, columns=f1_names)
+        # loop through the test imagery
+        for fname in self.filenames:
 
-        # compute metrics
-        for data_name in self.test_names:
-            tic = time.perf_counter()
+            # open the relevant datasets
+            labels = Open(join(self.test_labels_path)).ReadAsArray()
+            pred = Open(join(self.test_predictions_path)).ReadAsArray()
+            labels = unique(pred)
 
-            y_true = self.test_data[data_name][1]
-            y_pred = self.predicted_data[data_name]
+            # create dictionary to hold metrics
+            metric_dict = {}
+
+
+            ##### start here 
 
             for i in range(len(self.class_names)):
                 df_precision.loc[data_name, precision_names[i]] = precision(y_true, y_pred, pos_label=i)
@@ -95,6 +93,12 @@ class SegmentationModel(tf.keras.Model):
 
         # get filenames
         filenames = listdir(self.test_imagery_path)
+
+        # create directory for predicted rasters
+        if isdir(self.predictions_path):
+            pass
+        else:
+            makedirs(self.predictions_path)
 
         # loop through the files in test_imagery_path
         for fname in filenames:
