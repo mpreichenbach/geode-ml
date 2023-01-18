@@ -5,7 +5,6 @@ import tensorflow as tf
 from tensorflow.keras.layers import BatchNormalization, Concatenate, Conv2D, Dropout, MaxPooling2D, UpSampling2D
 
 
-
 class Unet(tf.keras.Model):
 
     def __init__(self, n_channels: int = 3,
@@ -215,4 +214,3 @@ class Unet(tf.keras.Model):
         output = self.conv_final(u0)
 
         return output
-

@@ -9,7 +9,6 @@ from os.path import isdir, join, splitext
 from osgeo import gdal, ogr
 
 
-
 class SemanticSegmentation:
     """Defines a semantic segmentation dataset to be used in deep-learning models. Has methods to resample source
      imagery, to rasterize polygon layers, to generate training tiles, and to generate an iterator object
@@ -307,7 +306,7 @@ class SemanticSegmentation:
 
         Args:
             output_path: the directory to hold the resampled imagery;
-            target_resolution: a tuple of the form (xRes, yRes) for target resolutions, in units of meters;
+            target_resolutions: a tuple of the form (xRes, yRes) for target resolutions, in units of meters;
             resample_algorithm: the method used for resampling (see gdalwarp documentation for more options);
             replace_source_dataset: whether to use the resampled imagery as the new source imagery;
             verbose: whether to print progress to the console.
