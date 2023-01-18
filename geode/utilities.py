@@ -22,12 +22,19 @@ def convert_vectors_to_labels(oh_array):
 
     return output
 
-def predict_raster(self, input_dataset: Dataset,
+def predict_raster(input_dataset: Dataset,
                    model: Model,
+                   output_path: str,
                    tile_dim: int=1024) -> None:
-        """Performs the inference using the loaded model, and reads tiles one-by-one from the input dataset, to avoid
+        """Performs the inference using the supplied model, and reads tiles one-by-one from the input dataset, to avoid
         overrunning the RAM by reading the entire raster into memory. Performs inference on four regions, denoted by A,
         B, C, and D.
+
+        Args:
+            input_dataset: the raster to perform inference on;
+            model: the model which performs inference;
+            output_path: the path at which to save the predicted raster;
+            tile_dim: the window size for inference.
 
         Returns:
             None
@@ -163,7 +170,31 @@ def predict_raster(self, input_dataset: Dataset,
             pred_tile = pred_tile[0:c_height, 0:b_width]
             pred[(input_height - d_height):input_height, (input_width - d_width):input_width] = pred_tile
 
-        predicted_array = pred
+        # check that the output_path specifies a tif file:
+        if splitext(output_path)[1] == ".tif":
+            pass
+        else:
+            raise Exception("Please specify a tif file in the output_path argument.")
+
+        # set up the metadata and write the predicted dataset
+        driver = GetDriverByName("GTiff")
+        driver.Register()
+        output_dataset = driver.Create(output_path,
+                                       xsize=input_width,
+                                       ysize=input_height,
+                                       bands=1,
+                                       eType=input_dataset.GetRasterBand(1).DataType)
+
+        output_dataset.SetGeoTransform(input_dataset.GetGeoTransform())
+        output_dataset.SetProjection(input_dataset.GetProjection())
+        output_band = output_dataset.GetRasterBand(1)
+        output_band.WriteArray(pred)
+        output_band.SetNoDataValue(0)
+        output_band.FlushCache()
+
+        # without the following lines, the arrays won't actually be written into the tif file
+        output_band = None
+        output_dataset = None
 
 def rasterize_polygon_layer(rgb: Dataset,
                             polygons: DataSource,
