@@ -9,7 +9,7 @@ from os.path import isdir, join, splitext
 from osgeo import gdal, ogr
 
 
-class SemanticSegmentation:
+class Segmentation:
     """Defines a semantic segmentation dataset to be used in deep-learning models. Has methods to resample source
      imagery, to rasterize polygon layers, to generate training tiles, and to generate an iterator object
      for model training."""
