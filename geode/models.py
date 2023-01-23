@@ -2,6 +2,7 @@
 
 from geode.metrics import f1, jaccard, total_accuracy
 from geode.utilities import predict_raster
+from json import dumps
 from numpy import unique
 from os import listdir, makedirs
 from os.path import isdir, join
@@ -30,8 +31,11 @@ class SegmentationModel(tf.keras.Model):
         else:
             raise Exception("The test imagery and labels must have identical filenames.")
 
-    def compute_metrics(self) -> dict:
+    def compute_metrics(self, output_path: str=None) -> dict:
         """Computes various metrics on a test dataset; paired images and labels should have identical filenames.
+
+        Args:
+            output_path: the path to write a text-file of metrics.
 
         Returns:
              A dictionary containing various calculated metrics for each test raster.
@@ -44,17 +48,51 @@ class SegmentationModel(tf.keras.Model):
         if len(listdir(self.test_predictions_path)) == 0:
             raise Exception("No predicted imagery has been generated.")
 
+        # create dictionary to hold metric dictionaries
+        fname_metrics = {}
+
         # loop through the test imagery
-        for fname in self.filenames:
-
-            # open the relevant datasets
-            labels = Open(join(self.test_labels_path, fname)).ReadAsArray()
-            pred = Open(join(self.test_predictions_path, fname)).ReadAsArray()
-
-            # create dictionary to hold metrics
+        for fname in self.test_filenames:
+            # create metrics dictionary
             metrics_dict = {}
 
+            # open the relevant datasets
+            y_true = Open(join(self.test_labels_path, fname)).ReadAsArray()
+            y_pred = Open(join(self.test_predictions_path, fname)).ReadAsArray()
 
+            # get the label values
+            labels = unique(y_true)
+
+            # compute total accuracy
+            metrics_dict["total_accuracy"] = total_accuracy(y_true, y_pred)
+
+            # compute F1 and Jaccard scores for each label
+            f1_scores = []
+            jaccard_scores = []
+            for label in labels:
+                f1_scores.append(f1(y_true=y_true,
+                                    y_pred=y_pred,
+                                    pos_label=label))
+
+                jaccard_scores.append(jaccard(y_true=y_true,
+                                              y_pred=y_pred,
+                                              pos_label=label))
+
+            # add F1 and Jaccard scores to the metrics dictionary
+            metrics_dict["F1"] = f1_scores
+            metrics_dict["Jaccard"] = jaccard_scores
+
+            fname_metrics[fname] = metrics_dict
+
+        # write the dictionary to a file
+        if output_path is not None:
+            with open(output_path, 'w') as f:
+                for key, value in fname_metrics.items():
+                    f.write('%s: %s' % (key, value))
+
+        self.metrics = fname_metrics
+
+        return fname_metrics
 
     def predict_test_imagery(self, verbose=True) -> None:
         """Predicts the test imagery in the supplied path.
