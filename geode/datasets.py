@@ -362,7 +362,7 @@ class Segmentation:
         self.check_polygons()
 
     def training_generator(self, batch_size: int,
-                           perform_one_hot: bool = True,
+                           perform_one_hot: bool = False,
                            n_classes: int = 2,
                            flip_vertically: bool = True,
                            rotate: bool = True,

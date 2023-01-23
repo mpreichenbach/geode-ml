@@ -89,7 +89,7 @@ class SegmentationModel(tf.keras.Model):
                 for key, value in fname_metrics.items():
                     f.write('%s: %s' % (key, value))
 
-        self.metrics = fname_metrics
+        self.test_metrics = fname_metrics
 
         return fname_metrics
 
@@ -107,10 +107,10 @@ class SegmentationModel(tf.keras.Model):
         filenames = listdir(self.test_imagery_path)
 
         # create directory for predicted rasters
-        if isdir(self.predictions_path):
+        if isdir(self.test_predictions_path):
             pass
         else:
-            makedirs(self.predictions_path)
+            makedirs(self.test_predictions_path)
 
         # loop through the files in test_imagery_path
         for fname in filenames:
