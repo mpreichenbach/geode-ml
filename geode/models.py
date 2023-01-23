@@ -1,6 +1,6 @@
 # models.py
 
-import geode.metrics as gm
+from geode.metrics import f1, jaccard, total_accuracy
 from geode.utilities import predict_raster
 from numpy import unique
 from os import listdir, makedirs
@@ -24,8 +24,8 @@ class SegmentationModel(tf.keras.Model):
         super().__init__()
 
         if set(listdir(self.test_imagery_path)) == set(listdir(self.test_labels_path)):
-            self.filenames = listdir(self.test_imagery_path)
-            if len(self.filenames) == 0:
+            self.test_filenames = listdir(self.test_imagery_path)
+            if len(self.self_filenames) == 0:
                 raise Exception("There is no test imagery.")
         else:
             raise Exception("The test imagery and labels must have identical filenames.")
@@ -48,41 +48,13 @@ class SegmentationModel(tf.keras.Model):
         for fname in self.filenames:
 
             # open the relevant datasets
-            labels = Open(join(self.test_labels_path)).ReadAsArray()
-            pred = Open(join(self.test_predictions_path)).ReadAsArray()
-            labels = unique(pred)
+            labels = Open(join(self.test_labels_path, fname)).ReadAsArray()
+            pred = Open(join(self.test_predictions_path, fname)).ReadAsArray()
 
             # create dictionary to hold metrics
-            metric_dict = {}
+            metrics_dict = {}
 
 
-            ##### start here 
-
-            for i in range(len(self.class_names)):
-                df_precision.loc[data_name, precision_names[i]] = precision(y_true, y_pred, pos_label=i)
-                df_recall.loc[data_name, recall_names[i]] = recall(y_true, y_pred, pos_label=i)
-                df_jaccard.loc[data_name, jaccard_names[i]] = jaccard(y_true, y_pred, pos_label=i)
-                df_f1.loc[data_name, f1_names[i]] = f1(y_true, y_pred, pos_label=i)
-
-            # bring together all columns for one data_name
-            self.metrics = pd.concat([df_precision, df_recall, df_jaccard, df_f1], axis=1)
-
-            toc = time.perf_counter()
-            metrics_time = round(toc - tic, 2)
-
-            if verbose:
-                print("Metrics for " + data_name + " generated in " + str(metrics_time) + " seconds.")
-
-            # generate confusion tables
-            tic = time.perf_counter()
-
-            table = confusion_matrix(y_true.flatten(), y_pred.flatten(), normalize='true')
-            self.confusion_tables[data_name] = pd.DataFrame(table, index=self.class_names, columns=self.class_names)
-
-            toc = time.perf_counter()
-            confusion_time = round(toc - tic, 2)
-            if verbose:
-                print("Confusion table for " + data_name + " generated in " + str(confusion_time) + " seconds.")
 
     def predict_test_imagery(self, verbose=True) -> None:
         """Predicts the test imagery in the supplied path.
