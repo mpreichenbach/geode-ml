@@ -1,7 +1,7 @@
 # datasets.py
 
 from geode.utilities import convert_labels_to_one_hots, rasterize_polygon_layer, resample_dataset, tile_raster_pair
-from numpy import abs, array, flip, rot90
+from numpy import abs, asarray, flip, float32, moveaxis, rot90
 from numpy.testing import assert_allclose
 from numpy.random import randint, shuffle
 from os import listdir, mkdir
@@ -398,24 +398,33 @@ class Segmentation:
                     img = gdal.Open(join(self.tiles_path, "imagery", filenames[ID])).ReadAsArray()
                     lbl = gdal.Open(join(self.tiles_path, "labels", filenames[ID])).ReadAsArray()
 
+                    # reshape img to channels-last
+                    img = moveaxis(img, 0, -1)
+
+                    # perform random rotation
                     if rotate:
                         k_rot = randint(0, 4)
                         img = rot90(img, k=k_rot)
                         lbl = rot90(lbl, k=k_rot)
 
+                    # perform random flip
                     if flip_vertically and randint(0, 2) == 1:
                         img = flip(img, axis=0)
                         lbl = flip(lbl, axis=0)
 
+                    # perform a one-hot encoding of the labels
                     if perform_one_hot:
                         lbl = convert_labels_to_one_hots(lbl, n_classes)
 
+                    # rescale the input pixels
                     img = img * scale_factor
 
+                    # append the rasters to a list
                     imagery_batch.append(img)
                     labels_batch.append(lbl)
 
-                imagery_batch = array(imagery_batch)
-                labels_batch = array(labels_batch)
+                # create an array of the full batch
+                imagery_batch = asarray(imagery_batch, dtype=float32)
+                labels_batch = asarray(labels_batch, dtype=float32)
 
                 yield imagery_batch, labels_batch

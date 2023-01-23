@@ -2,7 +2,6 @@
 
 from geode.metrics import f1, jaccard, total_accuracy
 from geode.utilities import predict_raster
-from json import dumps
 from numpy import unique
 from os import listdir, makedirs
 from os.path import isdir, join
@@ -13,25 +12,25 @@ from tensorflow.keras.layers import BatchNormalization, Concatenate, Conv2D, Dro
 
 class SegmentationModel(tf.keras.Model):
 
-    def __init__(self, test_imagery_path: str,
-                 test_labels_path: str,
-                 test_predictions_path: ""):
+    def __init__(self, test_imagery_path: str = None,
+                 test_labels_path: str = None,
+                 test_predictions_path: str = None):
 
-        self.metrics = {}
+        super().__init__()
+
+        self.test_metrics = {}
         self.test_imagery_path = test_imagery_path
         self.test_labels_path = test_labels_path
         self.test_predictions_path = test_predictions_path
 
-        super().__init__()
-
         if set(listdir(self.test_imagery_path)) == set(listdir(self.test_labels_path)):
             self.test_filenames = listdir(self.test_imagery_path)
-            if len(self.self_filenames) == 0:
+            if len(self.test_filenames) == 0:
                 raise Exception("There is no test imagery.")
         else:
             raise Exception("The test imagery and labels must have identical filenames.")
 
-    def compute_metrics(self, output_path: str=None) -> dict:
+    def compute_metrics(self, output_path: str = None) -> dict:
         """Computes various metrics on a test dataset; paired images and labels should have identical filenames.
 
         Args:
@@ -97,6 +96,9 @@ class SegmentationModel(tf.keras.Model):
     def predict_test_imagery(self, verbose=True) -> None:
         """Predicts the test imagery in the supplied path.
 
+        Args:
+            verbose: whether to print an update for each file when inference is completed.
+
         Returns:
             None
         """
@@ -125,12 +127,21 @@ class SegmentationModel(tf.keras.Model):
             if verbose:
                 print("Prediction finished for", fname + ".")
 
+
 class Unet(SegmentationModel):
 
     def __init__(self, n_channels: int = 3,
                  n_classes: int = 2,
                  n_filters: int = 64,
-                 dropout_rate: float = 0.2):
+                 dropout_rate: float = 0.2,
+                 test_imagery_path: str = None,
+                 test_labels_path: str = None,
+                 test_predictions_path: str = None):
+
+        # initialize the Model superclass
+        super().__init__(test_imagery_path=test_imagery_path,
+                         test_labels_path=test_labels_path,
+                         test_predictions_path=test_predictions_path)
 
         # define attributes
         self.n_channels = n_channels
@@ -138,12 +149,9 @@ class Unet(SegmentationModel):
         self.n_filters = n_filters
         self.dropout_rate = dropout_rate
 
-        # initialize the Model superclass
-        super().__init__()
-
         # Multiple layer versions are required because they get called on different input shapes
 
-        # Dowsampling-path convolutional layers
+        # Downsampling-path convolutional layers
         self.conv_down_0 = [Conv2D(filters=self.n_filters,
                             kernel_size=(3, 3),
                             padding='same',
@@ -276,27 +284,10 @@ class Unet(SegmentationModel):
             d4 = self.batch_normalization[conv_counter](d4)
             conv_counter += 1
 
-        # level 5
-        d5 = self.max_pooling[4](d4)
-        for i in range(4):
-            d5 = self.conv_down_5[i](d5)
-            d5 = self.dropout[conv_counter](d5) if include_dropout else d5
-            d5 = self.batch_normalization[conv_counter](d5)
-            conv_counter += 1
-
         # upsampling path
 
-        # level 4
-        u4 = self.upsampling[4](d5)
-        u4 = self.concatenate[4]([u4, d4])
-        for i in range(4):
-            u4 = self.conv_up_4[i](u4)
-            u4 = self.dropout[conv_counter](u4) if include_dropout else u4
-            u4 = self.batch_normalization[conv_counter](u4)
-            conv_counter += 1
-
         # level 3
-        u3 = self.upsampling[3](u4)
+        u3 = self.upsampling[3](d4)
         u3 = self.concatenate[3]([u3, d3])
         for i in range(4):
             u3 = self.conv_up_3[i](u3)

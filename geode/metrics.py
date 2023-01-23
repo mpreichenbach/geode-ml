@@ -76,4 +76,4 @@ def total_accuracy(y_true: ndarray,
     # compute accuracy
     acc = np.sum(np.where(y_true == y_pred, 1, 0)) / np.prod(y_true.shape)
 
-    return(acc)
+    return acc
