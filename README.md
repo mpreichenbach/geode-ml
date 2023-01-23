@@ -34,6 +34,26 @@ The generators module currently contains the class:
 	* from_tiles() method reads from generated tile files
 	* from_source() method (in development) reads from the larger source rasters
 
+The geode.losses module
+--------------------
+
+The losses module contains custom loss functions for model training; these may be removed in the future when implemented in Tensorflow.
+
+The geode.metrics module
+--------------------
+
+The metrics module contains useful metrics for testing model performance.
+
+The geode.models module
+--------------------
+
+The models module contains the classes:
+
+1. Segmentation
+	* subset of the tensorflow.keras.Model class to be used for image segmentation
+2. Unet
+	* subset of the Segmentation class which instantiates a Unet architecture.
+
 The geode.utilities module
 --------------------
 
