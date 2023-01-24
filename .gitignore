@@ -5,4 +5,6 @@ geode/__pycache__/
 .idea/
 __pycache__/
 test/
+train_model.py
+
 

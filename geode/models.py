@@ -12,16 +12,14 @@ from tensorflow.keras.layers import BatchNormalization, Concatenate, Conv2D, Dro
 
 class SegmentationModel(tf.keras.Model):
 
-    def __init__(self, test_imagery_path: str = None,
-                 test_labels_path: str = None,
-                 test_predictions_path: str = None):
+    def __init__(self, **kwargs):
 
         super().__init__()
 
         self.test_metrics = {}
-        self.test_imagery_path = test_imagery_path
-        self.test_labels_path = test_labels_path
-        self.test_predictions_path = test_predictions_path
+        self.test_imagery_path = kwargs["test_imagery_path"]
+        self.test_labels_path = kwargs["test_labels_path"]
+        self.test_predictions_path = kwargs["test_predictions_path"]
 
         if set(listdir(self.test_imagery_path)) == set(listdir(self.test_labels_path)):
             self.test_filenames = listdir(self.test_imagery_path)
