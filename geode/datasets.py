@@ -28,15 +28,19 @@ class Segmentation:
         self.dataset_description: str = dataset_description
         self.label_proportion: float = 0.0
         self.labels_path = labels_path
-        self.source_image_names = listdir(source_path)
         self.source_metadata: dict = {}
         self.source_path = source_path
         self.polygons_path = polygons_path
         self.tile_dimension = tile_dimension
         self.tiles_path = tiles_path
-        self.data_names = [splitext(x)[0] for x in listdir(source_path)]
         self.no_data_value = no_data_value
         self.burn_attribute = burn_attribute
+
+        if source_path == "":
+            pass
+        else:
+            self.source_image_names = listdir(source_path)
+            self.data_names = [splitext(x)[0] for x in self.source_image_names]
 
     def check_source(self) -> None:
         """Checks whether the source imagery has been set, and is nonempty.
