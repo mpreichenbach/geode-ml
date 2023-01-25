@@ -19,10 +19,15 @@ class SegmentationModel(tf.keras.Model):
         self.test_metrics = {}
         self.test_filenames = []
 
-    def compute_metrics(self, output_path: str = None) -> dict:
+    def compute_metrics(self, test_labels_path: str = None,
+                        test_predictions_path: str = None,
+                        output_path: str = None) -> dict:
+
         """Computes various metrics on a test dataset; paired images and labels should have identical filenames.
 
         Args:
+            test_labels_path: the location of test labels;
+            test_predictions_path: the location at which to save model predictions;
             output_path: the path to write a text-file of metrics.
 
         Returns:
@@ -33,7 +38,7 @@ class SegmentationModel(tf.keras.Model):
         """
 
         # check that there are predictions
-        if len(listdir(self.test_predictions_path)) == 0:
+        if len(listdir(test_predictions_path)) == 0:
             raise Exception("No predicted imagery has been generated.")
 
         # create dictionary to hold metric dictionaries
@@ -45,8 +50,8 @@ class SegmentationModel(tf.keras.Model):
             metrics_dict = {}
 
             # open the relevant datasets
-            y_true = Open(join(self.test_labels_path, fname)).ReadAsArray()
-            y_pred = Open(join(self.test_predictions_path, fname)).ReadAsArray()
+            y_true = Open(join(test_labels_path, fname)).ReadAsArray()
+            y_pred = Open(join(test_predictions_path, fname)).ReadAsArray()
 
             # get the label values
             labels = unique(y_true)
@@ -118,10 +123,10 @@ class SegmentationModel(tf.keras.Model):
         filenames = listdir(test_imagery_path)
 
         # create directory for predicted rasters
-        if isdir(self.test_predictions_path):
+        if isdir(test_predictions_path):
             pass
         else:
-            makedirs(self.test_predictions_path)
+            makedirs(test_predictions_path)
 
         # loop through the files in test_imagery_path
         for fname in filenames:
@@ -129,7 +134,7 @@ class SegmentationModel(tf.keras.Model):
 
             predict_raster(input_dataset=rgb,
                            model=self,
-                           output_path=join(self.test_predictions_path, fname))
+                           output_path=join(test_predictions_path, fname))
 
             # close the input dataset
             rgb = None
