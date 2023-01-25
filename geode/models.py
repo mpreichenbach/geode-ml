@@ -12,21 +12,12 @@ from tensorflow.keras.layers import BatchNormalization, Concatenate, Conv2D, Dro
 
 class SegmentationModel(tf.keras.Model):
 
-    def __init__(self, **kwargs):
+    def __init__(self):
 
         super().__init__()
 
         self.test_metrics = {}
-        self.test_imagery_path = kwargs["test_imagery_path"]
-        self.test_labels_path = kwargs["test_labels_path"]
-        self.test_predictions_path = kwargs["test_predictions_path"]
-
-        if set(listdir(self.test_imagery_path)) == set(listdir(self.test_labels_path)):
-            self.test_filenames = listdir(self.test_imagery_path)
-            if len(self.test_filenames) == 0:
-                raise Exception("There is no test imagery.")
-        else:
-            raise Exception("The test imagery and labels must have identical filenames.")
+        self.test_filenames = []
 
     def compute_metrics(self, output_path: str = None) -> dict:
         """Computes various metrics on a test dataset; paired images and labels should have identical filenames.
@@ -91,15 +82,37 @@ class SegmentationModel(tf.keras.Model):
 
         return fname_metrics
 
-    def predict_test_imagery(self, verbose=True) -> None:
+    def predict_test_imagery(self, test_imagery_path: str = None,
+                             test_labels_path: str = None,
+                             test_predictions_path: str = None,
+                             verbose=True) -> None:
         """Predicts the test imagery in the supplied path.
 
         Args:
+            test_imagery_path: the location of input test imagery;
+            test_labels_path: the location of test labels;
+            test_predictions_path: the location at which to save model predictions;
             verbose: whether to print an update for each file when inference is completed.
 
         Returns:
             None
+
+        Raises:
+            Exception: if any of the input paths are None;
+            Exception: if no test files exist at the supplied paths.
         """
+
+        # check that input paths are supplied
+        if test_imagery_path is None or test_labels_path is None or test_predictions_path is None:
+            raise Exception("One of the required path arguments has not been supplied.")
+
+        # check that test imagery exists and has correctly named labels
+        if set(listdir(test_imagery_path)) == set(listdir(test_labels_path)):
+            self.test_filenames = listdir(test_imagery_path)
+            if len(self.test_filenames) == 0:
+                raise Exception("There is no test imagery.")
+        else:
+            raise Exception("The test imagery and labels must have identical filenames.")
 
         # get filenames
         filenames = listdir(self.test_imagery_path)
@@ -131,15 +144,10 @@ class Unet(SegmentationModel):
     def __init__(self, n_channels: int = 3,
                  n_classes: int = 2,
                  n_filters: int = 64,
-                 dropout_rate: float = 0.2,
-                 test_imagery_path: str = None,
-                 test_labels_path: str = None,
-                 test_predictions_path: str = None):
+                 dropout_rate: float = 0.0):
 
         # initialize the Model superclass
-        super().__init__(test_imagery_path=test_imagery_path,
-                         test_labels_path=test_labels_path,
-                         test_predictions_path=test_predictions_path)
+        super().__init__()
 
         # define attributes
         self.n_channels = n_channels
