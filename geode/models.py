@@ -115,7 +115,7 @@ class SegmentationModel(tf.keras.Model):
             raise Exception("The test imagery and labels must have identical filenames.")
 
         # get filenames
-        filenames = listdir(self.test_imagery_path)
+        filenames = listdir(test_imagery_path)
 
         # create directory for predicted rasters
         if isdir(self.test_predictions_path):
@@ -125,7 +125,7 @@ class SegmentationModel(tf.keras.Model):
 
         # loop through the files in test_imagery_path
         for fname in filenames:
-            rgb = Open(join(self.test_imagery_path, fname))
+            rgb = Open(join(test_imagery_path, fname))
 
             predict_raster(input_dataset=rgb,
                            model=self,
