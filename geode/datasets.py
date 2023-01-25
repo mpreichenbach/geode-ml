@@ -105,7 +105,7 @@ class Segmentation:
                             "or rasterize_polygons first.")
         elif len(listdir(self.labels_path)) == 0:
             raise Exception("The labels_path is empty.")
-        elif listdir(self.source_path) != listdir(self.labels_path):
+        elif set(listdir(self.source_path)) != set(listdir(self.labels_path)):
             raise Exception("Source imagery names do not match label raster names.")
         else:
             for filename in self.source_image_names:
