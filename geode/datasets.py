@@ -76,7 +76,7 @@ class Segmentation:
                             "or set_label_polygons first.")
         elif len(listdir(self.polygons_path)) == 0:
             raise Exception("The polygons_path is empty.")
-        elif [splitext(x)[0] for x in listdir(self.source_path)] != listdir(self.polygons_path):
+        elif set([splitext(x)[0] for x in listdir(self.source_path)]) != set(listdir(self.polygons_path)):
             raise Exception("Source imagery names do not match polygon data names.")
         else:
             for directory in listdir(self.polygons_path):
