@@ -148,8 +148,8 @@ class Unet(SegmentationModel):
 
     def __init__(self, n_channels: int = 3,
                  n_classes: int = 2,
-                 n_filters: int = 64,
-                 dropout_rate: float = 0.0):
+                 n_filters: int = 16,
+                 dropout_rate: float = 0.2):
 
         # initialize the Model superclass
         super().__init__()
@@ -188,16 +188,6 @@ class Unet(SegmentationModel):
                             padding='same',
                             activation='relu') for i in range(4)]
 
-        self.conv_down_5 = [Conv2D(filters=8 * self.n_filters,
-                            kernel_size=(3, 3),
-                            padding='same',
-                            activation='relu') for i in range(4)]
-
-        self.conv_up_4 = [Conv2D(filters=8 * self.n_filters,
-                          kernel_size=(3, 3),
-                          padding='same',
-                          activation='relu') for i in range(4)]
-
         self.conv_up_3 = [Conv2D(filters=8 * self.n_filters,
                                  kernel_size=(3, 3),
                                  padding='same',
@@ -228,8 +218,7 @@ class Unet(SegmentationModel):
                       self.conv_down_1 + self.conv_up_1 +
                       self.conv_down_2 + self.conv_up_2 +
                       self.conv_down_3 + self.conv_up_3 +
-                      self.conv_down_4 + self.conv_up_4 +
-                      self.conv_down_5)
+                      self.conv_down_4)
 
         # Max-pooling layers
         self.max_pooling = [MaxPooling2D(pool_size=(2, 2),

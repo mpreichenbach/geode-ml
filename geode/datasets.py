@@ -7,6 +7,7 @@ from numpy.random import randint, shuffle
 from os import listdir, mkdir
 from os.path import isdir, join, splitext
 from osgeo import gdal, ogr
+import tensorflow as tf
 
 
 class Segmentation:
@@ -17,6 +18,7 @@ class Segmentation:
     def __init__(self, source_path: str = "",
                  polygons_path: str = "",
                  labels_path: str = "",
+                 n_channels: int = 3,
                  tile_dimension: int = 0,
                  tiles_path: str = "",
                  dataset_description: str = "",
@@ -24,6 +26,7 @@ class Segmentation:
                  no_data_value: int = 0,
                  burn_attribute: str = "bool"):
 
+        self.n_channels = n_channels
         self.channel_description: str = channel_description
         self.dataset_description: str = dataset_description
         self.label_proportion: float = 0.0
@@ -365,40 +368,39 @@ class Segmentation:
         self.polygons_path = polygons_path
         self.check_polygons()
 
-    def training_generator(self, batch_size: int,
-                           perform_one_hot: bool = False,
-                           n_classes: int = 2,
-                           flip_vertically: bool = True,
-                           rotate: bool = True,
-                           scale_factor: float = 1 / 255) -> iter:
-        """Creates an iterator object for model training.
+    def tf_dataset(self, n_classes: int = 2,
+                   flip_vertically: bool = True,
+                   rotate: bool = True,
+                   scale_factor: float = 1 / 255,
+                   perform_one_hot: bool = False) -> tf.data.Dataset:
+
+        """Creates a tf.data.Dataset object which generates batches from the tile folders.
 
         Args:
-            batch_size: the number of tile pairs in each batch;
-            perform_one_hot: whether to do a one-hot encoding on the label tiles;
             n_classes: the number of label classes;
             flip_vertically: whether to randomly flip tile pairs vertically;
             rotate: whether to randomly rotate tile pairs;
-            scale_factor: the factor by which to rescale input imagery tiles.
+            scale_factor: the factor by which to rescale input imagery tiles;
+            perform_one_hot: whether to do a one-hot encoding on the label tiles.
 
         Returns:
-            An iterator object which generates batches of tile pairs for training.
+            A tf.data.Dataset object.
 
         Raises:
-            Exception: if perform_one_hot is False and n_classes is not an integer greater than 1.
+            Exception: if tile_dimension attribute has not been set.
         """
 
-        filenames = listdir(join(self.tiles_path, "imagery"))
-        train_ids = range(len(filenames))
-        while True:
-            shuffle(filenames)
-            for start in range(0, len(train_ids), batch_size):
-                imagery_batch = []
-                labels_batch = []
-                end = min(start + batch_size, len(filenames))
-                batch_ids = train_ids[start:end]
+        # check that tile_dimension attribute has been set
+        if self.tile_dimension == 0:
+            raise Exception("The tile_generator attribute must be greater than 0.")
 
-                for ID in batch_ids:
+        # first, define a generator
+        def generator():
+            filenames = listdir(join(self.tiles_path, "imagery"))
+            train_ids = range(len(filenames))
+            while True:
+                shuffle(filenames)
+                for ID in train_ids:
                     img = gdal.Open(join(self.tiles_path, "imagery", filenames[ID])).ReadAsArray()
                     lbl = gdal.Open(join(self.tiles_path, "labels", filenames[ID])).ReadAsArray()
 
@@ -423,12 +425,15 @@ class Segmentation:
                     # rescale the input pixels
                     img = img * scale_factor
 
-                    # append the rasters to a list
-                    imagery_batch.append(img)
-                    labels_batch.append(lbl)
+                    yield img, lbl
 
-                # create an array of the full batch
-                imagery_batch = asarray(imagery_batch, dtype=float32)
-                labels_batch = asarray(labels_batch, dtype=float32)
+        # create the tf.data.Dataset object
+        tf_ds = tf.data.Dataset.from_generator(
+            generator,
+            args=[],
+            output_signature=(
+                tf.TensorSpec(shape=(self.tile_dimension, self.tile_dimension, self.n_channels), dtype=tf.float32),
+                tf.TensorSpec(shape=(self.tile_dimension, self.tile_dimension), dtype=tf.float32))
+        )
 
-                yield imagery_batch, labels_batch
+        return tf_ds
