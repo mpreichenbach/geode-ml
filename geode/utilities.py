@@ -2,7 +2,7 @@
 
 from numpy import arange, argmax, expand_dims, moveaxis, pad, squeeze, sum, uint8, unique, zeros
 from os.path import join, splitext
-from osgeo.gdal import Dataset,  GDT_Byte, GetDriverByName, RasterizeLayer, Translate, Warp
+from osgeo.gdal import Dataset as gdalDataset,  GDT_Byte, GetDriverByName, RasterizeLayer, Translate, Warp
 from osgeo.ogr import DataSource
 from tensorflow.keras import Model
 
@@ -22,7 +22,7 @@ def convert_vectors_to_labels(oh_array):
 
     return output
 
-def predict_raster(input_dataset: Dataset,
+def predict_raster(input_dataset: gdalDataset,
                    model: Model,
                    output_path: str,
                    tile_dim: int=1024,
@@ -206,7 +206,7 @@ def predict_raster(input_dataset: Dataset,
         output_band = None
         output_dataset = None
 
-def rasterize_polygon_layer(rgb: Dataset,
+def rasterize_polygon_layer(rgb: gdalDataset,
                             polygons: DataSource,
                             output_path: str,
                             burn_attribute: str,
@@ -282,8 +282,8 @@ def resample_dataset(input_path: str,
     resampled = None
 
 
-def tile_raster_pair(rgb: Dataset,
-                     labels: Dataset,
+def tile_raster_pair(rgb: gdalDataset,
+                     labels: gdalDataset,
                      tile_dimension: int,
                      imagery_tiles_dir: str,
                      label_tiles_dir: str,
@@ -388,7 +388,7 @@ def tile_raster_pair(rgb: Dataset,
     labels = None
 
 
-def write_raster(dataset: Dataset,
+def write_raster(dataset: gdalDataset,
                  output_path: str,
                  no_data_value: int = 0) -> None:
     """Writes the predicted array, with correct metadata values, to a tif file.

@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "geode-ml"
-version = "1.3.0"
+version = "1.3.2"
 description = "Classes and methods to help with the creation of geospatial training datasets and deep-learning models."
 readme = "README.md"
 license = {file="LICENSE"}
@@ -23,10 +23,8 @@ classifiers = [
 
 keywords = ["deep-learning", "training", "dataset", "geospatial"]
 dependencies = [
-    "gdal>=3.4",
-    "numpy>=1.21",
-    "tensorflow-gpu>=2.7; sys_platform == 'win32'",
-    "tensorflow>=2.7; sys_platform == 'linux'"
+    "gdal",
+    "numpy",
 ]
 
 [project.urls]
