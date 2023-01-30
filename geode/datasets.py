@@ -10,7 +10,7 @@ from osgeo import gdal, ogr
 import tensorflow as tf
 
 
-class Segmentation:
+class SegmentationDataset:
     """Defines a semantic segmentation dataset to be used in deep-learning models. Has methods to resample source
      imagery, to rasterize polygon layers, to generate training tiles, and to generate an iterator object
      for model training."""
