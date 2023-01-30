@@ -134,7 +134,7 @@ class SegmentationModel:
             rgb = Open(join(test_imagery_path, fname))
 
             predict_raster(input_dataset=rgb,
-                           model=self,
+                           model=self.model,
                            output_path=join(test_predictions_path, fname))
 
             # close the input dataset
@@ -143,6 +143,7 @@ class SegmentationModel:
             # print status if required
             if verbose:
                 print("Prediction finished for", fname + ".")
+
 
 class Unet(SegmentationModel):
 
@@ -238,7 +239,7 @@ class Unet(SegmentationModel):
         # Concatenate layers
         self.concatenate = [Concatenate(axis=-1) for i in range(4)]
 
-    def compile_model(self, loss: tf.keras.losses.Loss,
+    def compile_model(self, loss: tf.keras.losses.Loss = 'sparse_categorical_crossentropy',
                       learning_rate: float = 0.0001) -> None:
 
         """Returns a model object, compiled with the provided loss and optimizer. Additionally, this sets the self.model
