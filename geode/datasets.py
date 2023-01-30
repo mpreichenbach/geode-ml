@@ -1,7 +1,7 @@
 # datasets.py
 
 from geode.utilities import convert_labels_to_one_hots, rasterize_polygon_layer, resample_dataset, tile_raster_pair
-from numpy import abs, flip, moveaxis, rot90
+from numpy import abs, expand_dims, flip, moveaxis, rot90
 from numpy.testing import assert_allclose
 from numpy.random import randint, shuffle
 from os import listdir, mkdir
