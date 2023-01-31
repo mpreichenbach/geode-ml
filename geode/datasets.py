@@ -255,21 +255,6 @@ class SegmentationDataset:
             if verbose:
                 print(filename + " tiles generated.")
 
-    def get_label_polygons(self) -> None:
-        """Queries the OpenStreetMaps API and downloads polygon data over the source imagery.
-
-        Returns:
-            None
-        """
-
-        # check whether the source imagery directory has been set and is nonempty.
-        self.check_polygons()
-
-        # loop through the source files
-        # for filename in self.data_names:
-
-        # raise NotImplementedError("Method \'get_label_polygons\' not implemented.")
-
     def rasterize_polygon_layers(self, verbose=True) -> None:
         """Generates label rasters from the polygon data, with dimensions matching the source imagery.
 
