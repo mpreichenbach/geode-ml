@@ -380,12 +380,20 @@ class SegmentationDataset:
         if self.tile_dimension == 0:
             raise Exception("The tile_generator attribute must be greater than 0.")
 
+        # define preprocessing steps
+        if augment:
+            prep = Sequential([preprocessing.Rescaling(1.0 / 255),
+                               preprocessing.RandomFlip('horizontal_and_vertical')])
+        else:
+            prep = Sequential([preprocessing.Rescaling(1.0 / 255)])
+
         # first, define a generator object which will define a tf.data.Dataset
         def generator():
             filenames = listdir(join(self.tiles_path, "imagery"))
             train_ids = range(len(filenames))
             while True:
-                shuffle(filenames)
+                if augment:
+                    shuffle(filenames)
                 for ID in train_ids:
                     img = gdal.Open(join(self.tiles_path, "imagery", filenames[ID])).ReadAsArray()
                     lbl = gdal.Open(join(self.tiles_path, "labels", filenames[ID])).ReadAsArray()
@@ -414,24 +422,14 @@ class SegmentationDataset:
             args=[],
             output_signature=output_signature)
 
-        # do data augmentation
-        if augment:
-            ds_aug = Sequential([preprocessing.Rescaling(1.0 / 255),
-                                 preprocessing.RandomFlip('horizontal_and_vertical')])
-
-            tf_ds = (
-                tf_ds
-                .shuffle(2 * batch_size)
-                .batch(batch_size)
-                .map(lambda x, y: (ds_aug(x), y),
-                     num_parallel_calls=tf.data.AUTOTUNE)
-                .prefetch(tf.data.AUTOTUNE)
-            )
-        else:
-            tf_ds = (
-                tf_ds
-                .batch(batch_size)
-                .prefetch(tf.data.AUTOTUNE)
-            )
+        # do data augmentation and set batch/prefetch parameters
+        tf_ds = (
+            tf_ds
+            .shuffle(2 * batch_size)
+            .batch(batch_size)
+            .map(lambda x, y: (prep(x), y),
+                 num_parallel_calls=tf.data.AUTOTUNE)
+            .prefetch(tf.data.AUTOTUNE)
+        )
 
         return tf_ds
