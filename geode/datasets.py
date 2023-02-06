@@ -8,6 +8,8 @@ from os import listdir, mkdir
 from os.path import isdir, join, splitext
 from osgeo import gdal, ogr
 import tensorflow as tf
+from tensorflow.keras.layers.experimental import preprocessing
+from tensorflow.keras.models import Sequential
 
 
 class SegmentationDataset:
@@ -354,9 +356,11 @@ class SegmentationDataset:
         self.check_polygons()
 
     def tf_dataset(self, n_classes: int = 2,
+                   augment = True,
                    flip_vertically: bool = True,
                    rotate: bool = True,
                    scale_factor: float = 1 / 255,
+                   batch_size: int = 1,
                    perform_one_hot: bool = False) -> tf.data.Dataset:
 
         """Creates a tf.data.Dataset object which generates batches from the tile folders.
@@ -380,6 +384,38 @@ class SegmentationDataset:
             raise Exception("The tile_generator attribute must be greater than 0.")
 
         # first, define a generator
+        # def generator():
+        #     filenames = listdir(join(self.tiles_path, "imagery"))
+        #     train_ids = range(len(filenames))
+        #     while True:
+        #         shuffle(filenames)
+        #         for ID in train_ids:
+        #             img = gdal.Open(join(self.tiles_path, "imagery", filenames[ID])).ReadAsArray()
+        #             lbl = gdal.Open(join(self.tiles_path, "labels", filenames[ID])).ReadAsArray()
+        #
+        #             # reshape img to channels-last
+        #             img = moveaxis(img, 0, -1)
+        #
+        #             # perform random rotation
+        #             if rotate:
+        #                 k_rot = randint(0, 4)
+        #                 img = rot90(img, k=k_rot)
+        #                 lbl = rot90(lbl, k=k_rot)
+        #
+        #             # perform random flip
+        #             if flip_vertically and randint(0, 2) == 1:
+        #                 img = flip(img, axis=0)
+        #                 lbl = flip(lbl, axis=0)
+        #
+        #             # perform a one-hot encoding of the labels
+        #             if perform_one_hot:
+        #                 lbl = convert_labels_to_one_hots(lbl, n_classes)
+        #
+        #             # rescale the input pixels
+        #             img = img * scale_factor
+        #
+        #             yield img, lbl
+
         def generator():
             filenames = listdir(join(self.tiles_path, "imagery"))
             train_ids = range(len(filenames))
@@ -392,23 +428,9 @@ class SegmentationDataset:
                     # reshape img to channels-last
                     img = moveaxis(img, 0, -1)
 
-                    # perform random rotation
-                    if rotate:
-                        k_rot = randint(0, 4)
-                        img = rot90(img, k=k_rot)
-                        lbl = rot90(lbl, k=k_rot)
-
-                    # perform random flip
-                    if flip_vertically and randint(0, 2) == 1:
-                        img = flip(img, axis=0)
-                        lbl = flip(lbl, axis=0)
-
                     # perform a one-hot encoding of the labels
                     if perform_one_hot:
                         lbl = convert_labels_to_one_hots(lbl, n_classes)
-
-                    # rescale the input pixels
-                    img = img * scale_factor
 
                     yield img, lbl
 
@@ -420,5 +442,19 @@ class SegmentationDataset:
                 tf.TensorSpec(shape=(self.tile_dimension, self.tile_dimension, self.n_channels), dtype=tf.float32),
                 tf.TensorSpec(shape=(self.tile_dimension, self.tile_dimension), dtype=tf.float32))
         )
+
+        # do data augmentation
+        if augment:
+            ds_aug = Sequential([preprocessing.Rescaling(1.0 / 255),
+                                 preprocessing.RandomFlip('horizontal_and_vertical')])
+
+            tf_ds = (
+                tf_ds
+                .shuffle(2 * batch_size)
+                .batch(batch_size)
+                .map(lambda x, y: (ds_aug(x), y),
+                     num_parallel_calls=tf.data.AUTOTUNE)
+                .prefetch(tf.data.AUTOTUNE)
+            )
 
         return tf_ds
