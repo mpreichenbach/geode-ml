@@ -364,9 +364,8 @@ class SegmentationDataset:
 
         Args:
             n_classes: the number of label classes;
-            flip_vertically: whether to randomly flip tile pairs vertically;
-            rotate: whether to randomly rotate tile pairs;
-            scale_factor: the factor by which to rescale input imagery tiles;
+            augment: whether to perform data augmentation (random flips);
+            batch_size: the size of the batch to generate;
             perform_one_hot: whether to do a one-hot encoding on the label tiles.
 
         Returns:
