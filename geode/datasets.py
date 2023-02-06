@@ -357,9 +357,6 @@ class SegmentationDataset:
 
     def tf_dataset(self, n_classes: int = 2,
                    augment = True,
-                   flip_vertically: bool = True,
-                   rotate: bool = True,
-                   scale_factor: float = 1 / 255,
                    batch_size: int = 1,
                    perform_one_hot: bool = False) -> tf.data.Dataset:
 
@@ -383,39 +380,7 @@ class SegmentationDataset:
         if self.tile_dimension == 0:
             raise Exception("The tile_generator attribute must be greater than 0.")
 
-        # first, define a generator
-        # def generator():
-        #     filenames = listdir(join(self.tiles_path, "imagery"))
-        #     train_ids = range(len(filenames))
-        #     while True:
-        #         shuffle(filenames)
-        #         for ID in train_ids:
-        #             img = gdal.Open(join(self.tiles_path, "imagery", filenames[ID])).ReadAsArray()
-        #             lbl = gdal.Open(join(self.tiles_path, "labels", filenames[ID])).ReadAsArray()
-        #
-        #             # reshape img to channels-last
-        #             img = moveaxis(img, 0, -1)
-        #
-        #             # perform random rotation
-        #             if rotate:
-        #                 k_rot = randint(0, 4)
-        #                 img = rot90(img, k=k_rot)
-        #                 lbl = rot90(lbl, k=k_rot)
-        #
-        #             # perform random flip
-        #             if flip_vertically and randint(0, 2) == 1:
-        #                 img = flip(img, axis=0)
-        #                 lbl = flip(lbl, axis=0)
-        #
-        #             # perform a one-hot encoding of the labels
-        #             if perform_one_hot:
-        #                 lbl = convert_labels_to_one_hots(lbl, n_classes)
-        #
-        #             # rescale the input pixels
-        #             img = img * scale_factor
-        #
-        #             yield img, lbl
-
+        # first, define a generator object which will define a tf.data.Dataset
         def generator():
             filenames = listdir(join(self.tiles_path, "imagery"))
             train_ids = range(len(filenames))
