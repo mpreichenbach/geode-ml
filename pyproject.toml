@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "geode-ml"
-version = "2.1.1"
+version = "2.1.2"
 description = "Classes and methods to help with the creation of geospatial training datasets and deep-learning models."
 readme = "README.md"
 license = {file="LICENSE"}

@@ -400,13 +400,19 @@ class SegmentationDataset:
                     yield img, lbl
 
         # create the tf.data.Dataset object
+        if perform_one_hot:
+            output_signature = (
+                tf.TensorSpec(shape=(self.tile_dimension, self.tile_dimension, self.n_channels), dtype=tf.float32),
+                tf.TensorSpec(shape=(self.tile_dimension, self.tile_dimension, n_classes), dtype=tf.float32))
+        else:
+            output_signature = (
+                tf.TensorSpec(shape=(self.tile_dimension, self.tile_dimension, self.n_channels), dtype=tf.float32),
+                tf.TensorSpec(shape=(self.tile_dimension, self.tile_dimension), dtype=tf.float32))
+
         tf_ds = tf.data.Dataset.from_generator(
             generator,
             args=[],
-            output_signature=(
-                tf.TensorSpec(shape=(self.tile_dimension, self.tile_dimension, self.n_channels), dtype=tf.float32),
-                tf.TensorSpec(shape=(self.tile_dimension, self.tile_dimension), dtype=tf.float32))
-        )
+            output_signature=output_signature)
 
         # do data augmentation
         if augment:
