@@ -421,5 +421,11 @@ class SegmentationDataset:
                      num_parallel_calls=tf.data.AUTOTUNE)
                 .prefetch(tf.data.AUTOTUNE)
             )
+        else:
+            tf_ds = (
+                tf_ds
+                .batch(batch_size)
+                .prefetch(tf.data.AUTOTUNE)
+            )
 
         return tf_ds
