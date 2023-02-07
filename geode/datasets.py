@@ -356,7 +356,7 @@ class SegmentationDataset:
         self.check_polygons()
 
     def tf_dataset(self, n_classes: int = 2,
-                   augment = True,
+                   augment: bool = True,
                    batch_size: int = 1,
                    perform_one_hot: bool = False) -> tf.data.Dataset:
 
