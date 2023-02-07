@@ -183,118 +183,119 @@ class VGG19Unet(SegmentationModel):
 
         # build the model graph
 
+        def conv_block(input_tensor,
+                       filters):
+
+            conv = Conv2D(filters=filters,
+                            kernel_size=(3, 3),
+                            padding='same',
+                            activation='relu')(input_tensor)
+            dropout = Dropout(rate=self.dropout_rate)(conv) if include_dropout else conv
+            batch_norm = BatchNormalization()(dropout)
+
+            return batch_norm
+
+        # build the model graph
+
         # level 0
-        inputs = Input(shape=(None, None, self.n_channels), dtype=tf.float32)
-        d0 = Conv2D(filters=self.n_filters,
-                    kernel_size=(3, 3),
-                    padding='same',
-                    activation='relu')(inputs)
-        d0 = Dropout(rate=self.dropout_rate)(d0) if include_dropout else d0
-        d0 = BatchNormalization()(d0)
-        d0 = Conv2D(filters=self.n_filters,
-                    kernel_size=(3, 3),
-                    padding='same',
-                    activation='relu')(d0)
-        d0 = Dropout(rate=self.dropout_rate)(d0) if include_dropout else d0
-        d0 = BatchNormalization()(d0)
+        d0 = Input(shape=(None, None, self.n_channels), dtype=tf.float32)
+        d0_conv_1 = conv_block(d0, filters=self.n_filters)
+        d0_conv_2 = conv_block(d0_conv_1, filters=self.n_filters)
+        d0_out = Add()([d0_conv_1, d0_conv_2]) if include_residual else d0_conv_2
 
         # level 1
         d1 = MaxPooling2D(pool_size=(2, 2),
-                          padding='same')(d0)
-        for i in range(2):
-            d1 = Conv2D(filters=2 * self.n_filters,
-                        kernel_size=(3, 3),
-                        padding='same',
-                        activation='relu')(d1)
-            d1 = Dropout(rate=self.dropout_rate)(d1) if include_dropout else d1
-            d1 = BatchNormalization()(d1)
+                          padding='same')(d0_out)
+        d1_conv_1 = conv_block(d1, filters=2 * self.n_filters)
+        d1_conv_2 = conv_block(d1_conv_1, filters=2 * self.n_filters)
+        d1_out = Add()([d1_conv_1, d1_conv_2]) if include_residual else d1_conv_2
 
         # level 2
         d2 = MaxPooling2D(pool_size=(2, 2),
-                          padding='same')(d1)
-        for i in range(4):
-            d2 = Conv2D(filters=4 * self.n_filters,
-                        kernel_size=(3, 3),
-                        padding='same',
-                        activation='relu')(d2)
-            d2 = Dropout(rate=self.dropout_rate)(d2) if include_dropout else d2
-            d2 = BatchNormalization()(d2)
+                          padding='same')(d1_out)
+        d2_conv_1 = conv_block(d2, filters=4 * self.n_filters)
+        d2_conv_2 = conv_block(d2_conv_1, filters=4 * self.n_filters)
+        d2_conv_2 = Add()([d2_conv_1, d2_conv_2]) if include_residual else d2_conv_2
+        d2_conv_3 = conv_block(d2_conv_2, filters=4 * self.n_filters)
+        d2_conv_3 = Add()([d2_conv_2, d2_conv_3]) if include_residual else d2_conv_3
+        d2_conv_4 = conv_block(d2_conv_3, filters=4 * self.n_filters)
+        d2_out = Add()([d2_conv_3, d2_conv_4]) if include_residual else d2_conv_4
 
         # level 3
         d3 = MaxPooling2D(pool_size=(2, 2),
-                          padding='same')(d2)
-        for i in range(4):
-            d3 = Conv2D(filters=8 * self.n_filters,
-                        kernel_size=(3, 3),
-                        padding='same',
-                        activation='relu')(d3)
-            d3 = Dropout(rate=self.dropout_rate)(d3) if include_dropout else d3
-            d3 = BatchNormalization()(d3)
+                          padding='same')(d2_out)
+        d3_conv_1 = conv_block(d3, filters=8 * self.n_filters)
+        d3_conv_2 = conv_block(d3_conv_1, filters=8 * self.n_filters)
+        d3_conv_2 = Add()([d3_conv_1, d3_conv_2]) if include_residual else d3_conv_2
+        d3_conv_3 = conv_block(d3_conv_2, filters=8 * self.n_filters)
+        d3_conv_3 = Add()([d3_conv_2, d3_conv_3]) if include_residual else d3_conv_3
+        d3_conv_4 = conv_block(d3_conv_3, filters=8 * self.n_filters)
+        d3_out = Add()([d3_conv_3, d3_conv_4]) if include_residual else d3_conv_4
 
         # level 4
         d4 = MaxPooling2D(pool_size=(2, 2),
-                          padding='same')(d3)
-        for i in range(4):
-            d4 = Conv2D(filters=8 * self.n_filters,
-                        kernel_size=(3, 3),
-                        padding='same',
-                        activation='relu')(d4)
-            d4 = Dropout(rate=self.dropout_rate)(d4) if include_dropout else d4
-            d4 = BatchNormalization()(d4)
+                          padding='same')(d3_out)
+        d4_conv_1 = conv_block(d4, filters=8 * self.n_filters)
+        d4_conv_2 = conv_block(d4_conv_1, filters=8 * self.n_filters)
+        d4_conv_2 = Add()([d4_conv_1, d4_conv_2]) if include_residual else d4_conv_2
+        d4_conv_3 = conv_block(d4_conv_2, filters=8 * self.n_filters)
+        d4_conv_3 = Add()([d4_conv_2, d4_conv_3]) if include_residual else d4_conv_3
+        d4_conv_4 = conv_block(d4_conv_3, filters=8 * self.n_filters)
+        d4_out = Add()([d4_conv_3, d4_conv_4]) if include_residual else d4_conv_4
 
         # upsampling path
 
         # level 3
-        u3 = UpSampling2D(size=(2, 2))(d4)
-        u3 = Concatenate(axis=-1)([u3, d3])
-        for i in range(4):
-            u3 = Conv2D(filters=8 * self.n_filters,
-                        kernel_size=(3, 3),
-                        padding='same',
-                        activation='relu')(u3)
-            u3 = Dropout(rate=self.dropout_rate)(u3) if include_dropout else u3
-            u3 = BatchNormalization()(u3)
+        u3 = UpSampling2D(size=(2, 2))(d4_out)
+        u3 = Concatenate(axis=-1)([u3, d3_out])
+        u3_conv_1 = conv_block(u3, filters=8 * self.n_filters)
+        u3_conv_2 = conv_block(u3_conv_1, filters=8 * self.n_filters)
+        u3_conv_2 = Add()([u3_conv_1, u3_conv_2]) if include_residual else u3_conv_2
+        u3_conv_3 = conv_block(u3_conv_2, filters=8 * self.n_filters)
+        u3_conv_3 = Add()([u3_conv_2, u3_conv_3]) if include_residual else u3_conv_3
+        u3_conv_4 = conv_block(u3_conv_3, filters=8 * self.n_filters)
+        u3_out = Add()([u3_conv_3, u3_conv_4]) if include_residual else u3_conv_4
 
         # level 2
-        u2 = UpSampling2D(size=(2, 2))(u3)
-        u2 = Concatenate(axis=-1)([u2, d2])
-        for i in range(4):
-            u2 = Conv2D(filters=4 * self.n_filters,
-                        kernel_size=(3, 3),
-                        padding='same',
-                        activation='relu')(u2)
-            u2 = Dropout(rate=self.dropout_rate)(u2) if include_dropout else u2
-            u2 = BatchNormalization()(u2)
+        u2 = UpSampling2D(size=(2, 2))(u3_out)
+        u2 = Concatenate(axis=-1)([u2, d2_out])
+        u2_conv_1 = conv_block(u2, filters=4 * self.n_filters)
+        u2_conv_2 = conv_block(u2_conv_1, filters=4 * self.n_filters)
+        u2_conv_2 = Add()([u2_conv_1, u2_conv_2]) if include_residual else u2_conv_2
+        u2_conv_3 = conv_block(u2_conv_2, filters=4 * self.n_filters)
+        u2_conv_3 = Add()([u2_conv_2, u2_conv_3]) if include_residual else u2_conv_3
+        u2_conv_4 = conv_block(u2_conv_3, filters=4 * self.n_filters)
+        u2_out = Add()([u2_conv_3, u2_conv_4]) if include_residual else u2_conv_4
 
         # level 1
-        u1 = UpSampling2D(size=(2, 2))(u2)
-        u1 = Concatenate(axis=-1)([u1, d1])
-        for i in range(2):
-            u1 = Conv2D(filters=2 * self.n_filters,
-                        kernel_size=(3, 3),
-                        padding='same',
-                        activation='relu')(u1)
-            u1 = Dropout(rate=self.dropout_rate)(u1) if include_dropout else u1
-            u1 = BatchNormalization()(u1)
+        u1 = UpSampling2D(size=(2, 2))(u2_out)
+        u1 = Concatenate(axis=-1)([u1, d1_out])
+        u1_conv_1 = conv_block(u1, filters=2 * self.n_filters)
+        u1_conv_2 = conv_block(u1_conv_1, filters=2 * self.n_filters)
+        u1_conv_2 = Add()([u1_conv_1, u1_conv_2]) if include_residual else u1_conv_2
+        u1_conv_3 = conv_block(u1_conv_2, filters=2 * self.n_filters)
+        u1_conv_3 = Add()([u1_conv_2, u1_conv_3]) if include_residual else u1_conv_3
+        u1_conv_4 = conv_block(u1_conv_3, filters=2 * self.n_filters)
+        u1_out = Add()([u1_conv_3, u1_conv_4]) if include_residual else u1_conv_4
 
         # level 0
-        u0 = UpSampling2D(size=(2, 2))(u1)
-        u0 = Concatenate(axis=-1)([u0, d0])
-        for i in range(2):
-            u0 = Conv2D(filters=self.n_filters,
-                        kernel_size=(3, 3),
-                        padding='same',
-                        activation='relu')(u0)
-            u0 = Dropout(rate=self.dropout_rate)(u0) if include_dropout else u0
-            u0 = BatchNormalization()(u0)
+        u0 = UpSampling2D(size=(2, 2))(u1_out)
+        u0 = Concatenate(axis=-1)([u0, d0_out])
+        u0_conv_1 = conv_block(u0, filters=self.n_filters)
+        u0_conv_2 = conv_block(u0_conv_1, filters=self.n_filters)
+        u0_conv_2 = Add()([u0_conv_1, u0_conv_2]) if include_residual else u0_conv_2
+        u0_conv_3 = conv_block(u0_conv_2, filters=self.n_filters)
+        u0_conv_3 = Add()([u0_conv_2, u0_conv_3]) if include_residual else u0_conv_3
+        u0_conv_4 = conv_block(u0_conv_3, filters=self.n_filters)
+        u0_out = Add()([u0_conv_3, u0_conv_4]) if include_residual else u0_conv_4
 
         outputs = Conv2D(filters=self.n_classes,
                          kernel_size=(1, 1),
                          padding='same',
-                         activation='softmax')(u0)
+                         activation='softmax')(u0_out)
 
         # create the model object
-        model = tf.keras.Model(inputs=inputs, outputs=outputs)
+        model = tf.keras.Model(inputs=d0, outputs=outputs)
 
         # compile the model
         model.compile(loss=loss, optimizer=tf.keras.optimizers.Adam(learning_rate=learning_rate))
@@ -337,25 +338,17 @@ class Unet(SegmentationModel):
 
         include_dropout = (self.dropout_rate > 0.0)
 
-        # build the model graph
-
         def conv_block(input_tensor,
                        filters):
 
-            conv_1 = Conv2D(filters=filters,
-                           kernel_size=(3, 3),
-                           padding='same',
-                           activation='relu')(input_tensor)
-            dropout_1 = Dropout(rate=self.dropout_rate)(conv_1) if include_dropout else conv_1
-            batch_norm_1 = BatchNormalization()(dropout_1)
-            conv_2 = Conv2D(filters=filters,
+            conv = Conv2D(filters=filters,
                             kernel_size=(3, 3),
                             padding='same',
-                            activation='relu')(batch_norm_1)
-            dropout_2 = Dropout(rate=self.dropout_rate)(conv_2) if include_dropout else conv_2
-            batch_norm_2 = BatchNormalization()(dropout_2)
+                            activation='relu')(input_tensor)
+            dropout = Dropout(rate=self.dropout_rate)(conv) if include_dropout else conv
+            batch_norm = BatchNormalization()(dropout)
 
-            return batch_norm_2
+            return batch_norm
 
         # build the model graph
 
