@@ -8,8 +8,10 @@ from os import listdir, mkdir
 from os.path import isdir, join, splitext
 from osgeo import gdal, ogr
 import tensorflow as tf
+from tensorflow.keras.layers import Concatenate, Input, Reshape
 from tensorflow.keras.layers.experimental import preprocessing
 from tensorflow.keras.models import Sequential
+from tensorflow.keras import Model
 
 
 class SegmentationDataset:
@@ -356,7 +358,7 @@ class SegmentationDataset:
         self.check_polygons()
 
     def tf_dataset(self, n_classes: int = 2,
-                   augment: bool = True,
+                   augmentation: bool = True,
                    batch_size: int = 1,
                    perform_one_hot: bool = False) -> tf.data.Dataset:
 
@@ -364,7 +366,7 @@ class SegmentationDataset:
 
         Args:
             n_classes: the number of label classes;
-            augment: whether to perform data augmentation (random flips);
+            augmentation: whether to perform data augmentation (random flips);
             batch_size: the size of the batch to generate;
             perform_one_hot: whether to do a one-hot encoding on the label tiles.
 
@@ -379,14 +381,22 @@ class SegmentationDataset:
         if self.tile_dimension == 0:
             raise Exception("The tile_generator attribute must be greater than 0.")
 
-        # define preprocessing steps
-        if augment:
-            prep = Sequential([preprocessing.Rescaling(1.0 / 255),
-                               preprocessing.RandomFlip('horizontal_and_vertical')])
-        else:
-            prep = Sequential([preprocessing.Rescaling(1.0 / 255)])
+        # define the model to do preprocessing
+        source_input = Input(shape=(self.tile_dimension, self.tile_dimension, self.n_channels), dtype=tf.float32)
+        label_input = Input(shape=(self.tile_dimension, self.tile_dimension), dtype=tf.float32)
+        lbl_reshape = Reshape(target_shape=(self.tile_dimension, self.tile_dimension, 1))(label_input)
+        pair_block = Concatenate()([source_input, lbl_reshape])
+        pair_block = preprocessing.RandomFlip('horizontal_and_vertical')(pair_block)
 
-        # first, define a generator object which will define a tf.data.Dataset
+        prep_model = Model(inputs=[source_input, label_input], outputs=pair_block)
+
+        # create a local function to pass image/label pairs to the preprocessing model
+        def augment(img, lbl):
+            prep_block = prep_model([img, lbl])
+
+            return prep_block[:, :, :, 0:self.n_channels], prep_block[:, :, :, -1]
+
+        # define a generator object which will then define a tf.data.Dataset
         def generator():
             filenames = listdir(join(self.tiles_path, "imagery"))
             train_ids = range(len(filenames))
@@ -421,14 +431,19 @@ class SegmentationDataset:
             args=[],
             output_signature=output_signature)
 
-        # do data augmentation and set batch/prefetch parameters
+        # define the tf.data.Dataset
         tf_ds = (
             tf_ds
             .shuffle(2 * batch_size)
             .batch(batch_size)
-            .map(lambda x, y: (prep(x), y),
+            .map(lambda x, y: augment(x, y),
                  num_parallel_calls=tf.data.AUTOTUNE)
             .prefetch(tf.data.AUTOTUNE)
         )
+
+        # apply augmentation
+        if augmentation:
+            tf_ds.map(lambda x, y: augment(x, y),
+                      num_parallel_calls=tf.data.AUTOTUNE)
 
         return tf_ds
