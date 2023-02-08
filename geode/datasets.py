@@ -436,8 +436,6 @@ class SegmentationDataset:
             tf_ds
             .shuffle(2 * batch_size)
             .batch(batch_size)
-            .map(lambda x, y: augment(x, y),
-                 num_parallel_calls=tf.data.AUTOTUNE)
             .prefetch(tf.data.AUTOTUNE)
         )
 
