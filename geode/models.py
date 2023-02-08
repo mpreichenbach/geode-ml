@@ -8,7 +8,7 @@ from os.path import isdir, join
 from osgeo.gdal import Open
 import tensorflow as tf
 from tensorflow.keras.layers import Add, BatchNormalization, Concatenate, Conv2D, Dropout, Input, MaxPooling2D, UpSampling2D
-
+from tensorflow.keras.layers.experimental.preprocessing import Rescaling
 
 class SegmentationModel:
 
@@ -162,7 +162,8 @@ class VGG19Unet(SegmentationModel):
         self.dropout_rate = dropout_rate
 
     def compile_model(self, loss: tf.keras.losses.Loss = 'sparse_categorical_crossentropy',
-                      learning_rate: float = 0.0001,
+                      learning_rate: float = 0.001,
+                      rescale_factor: float = 1 / 255,
                       include_residual: bool = False,
                       include_attention: bool = False
                       ) -> None:
@@ -173,6 +174,7 @@ class VGG19Unet(SegmentationModel):
         Args:
             loss: the loss function to use during training;
             learning_rate: the starting learning rate for the Adam optimizer;
+            rescale_factor: the factor by which to rescale the input tensor;
             include_residual: incorporate a residual connection into each convolutional block;
             include_attention: incorporate an attention module into each skip-connection.
 
@@ -187,9 +189,9 @@ class VGG19Unet(SegmentationModel):
                        filters):
 
             conv = Conv2D(filters=filters,
-                            kernel_size=(3, 3),
-                            padding='same',
-                            activation='relu')(input_tensor)
+                          kernel_size=(3, 3),
+                          padding='same',
+                          activation='relu')(input_tensor)
             dropout = Dropout(rate=self.dropout_rate)(conv) if include_dropout else conv
             batch_norm = BatchNormalization()(dropout)
 
@@ -198,7 +200,8 @@ class VGG19Unet(SegmentationModel):
         # build the model graph
 
         # level 0
-        d0 = Input(shape=(None, None, self.n_channels), dtype=tf.float32)
+        inputs = Input(shape=(None, None, self.n_channels), dtype=tf.float32)
+        d0 = Rescaling(scale=rescale_factor)(inputs)
         d0_conv_1 = conv_block(d0, filters=self.n_filters)
         d0_conv_2 = conv_block(d0_conv_1, filters=self.n_filters)
         d0_out = Add()([d0_conv_1, d0_conv_2]) if include_residual else d0_conv_2
@@ -295,7 +298,7 @@ class VGG19Unet(SegmentationModel):
                          activation='softmax')(u0_out)
 
         # create the model object
-        model = tf.keras.Model(inputs=d0, outputs=outputs)
+        model = tf.keras.Model(inputs=inputs, outputs=outputs)
 
         # compile the model
         model.compile(loss=loss, optimizer=tf.keras.optimizers.Adam(learning_rate=learning_rate))
@@ -320,7 +323,8 @@ class Unet(SegmentationModel):
         self.dropout_rate = dropout_rate
 
     def compile_model(self, loss: tf.keras.losses.Loss = 'sparse_categorical_crossentropy',
-                      learning_rate: float = 0.0001,
+                      learning_rate: float = 0.001,
+                      rescale_factor: float = 1 / 255,
                       include_residual: bool = False,
                       include_attention: bool = False) -> None:
 
@@ -330,6 +334,7 @@ class Unet(SegmentationModel):
         Args:
             loss: the loss function to use during training;
             learning_rate: the starting learning rate for the Adam optimizer;
+            rescale_factor: the factor by which to rescale the input tensor;
             include_residual: include residual connections in each level;
             include_attention: include an attention module for each skip-connection.
 
@@ -342,9 +347,9 @@ class Unet(SegmentationModel):
                        filters):
 
             conv = Conv2D(filters=filters,
-                            kernel_size=(3, 3),
-                            padding='same',
-                            activation='relu')(input_tensor)
+                          kernel_size=(3, 3),
+                          padding='same',
+                          activation='relu')(input_tensor)
             dropout = Dropout(rate=self.dropout_rate)(conv) if include_dropout else conv
             batch_norm = BatchNormalization()(dropout)
 
@@ -353,7 +358,8 @@ class Unet(SegmentationModel):
         # build the model graph
 
         # level 0
-        d0 = Input(shape=(None, None, self.n_channels), dtype=tf.float32)
+        inputs = Input(shape=(None, None, self.n_channels), dtype=tf.float32)
+        d0 = Rescaling(scale=rescale_factor)(inputs)
         d0_conv_1 = conv_block(d0, filters=self.n_filters)
         d0_conv_2 = conv_block(d0_conv_1, filters=self.n_filters)
         d0_out = Add()([d0_conv_1, d0_conv_2]) if include_residual else d0_conv_2
@@ -422,7 +428,7 @@ class Unet(SegmentationModel):
                          activation='softmax')(u0_out)
 
         # create the model object
-        model = tf.keras.Model(inputs=d0, outputs=outputs)
+        model = tf.keras.Model(inputs=inputs, outputs=outputs)
 
         # compile the model
         model.compile(loss=loss, optimizer=tf.keras.optimizers.Adam(learning_rate=learning_rate))
