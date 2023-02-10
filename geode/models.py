@@ -10,6 +10,7 @@ import tensorflow as tf
 from tensorflow.keras.layers import Add, BatchNormalization, Concatenate, Conv2D, Dropout, Input, MaxPooling2D, UpSampling2D
 from tensorflow.keras.layers.experimental.preprocessing import Rescaling
 
+
 class SegmentationModel:
 
     def __init__(self):

@@ -25,8 +25,7 @@ def convert_vectors_to_labels(oh_array):
 def predict_raster(input_dataset: Dataset,
                    model: Model,
                    output_path: str,
-                   tile_dim: int=1024,
-                   scale_factor: float=1/255) -> None:
+                   tile_dim: int = 1024) -> None:
         """Performs the inference using the supplied model, and reads tiles one-by-one from the input dataset, to avoid
         overrunning the RAM by reading the entire raster into memory. Performs inference on four regions, denoted by A,
         B, C, and D.
@@ -35,9 +34,7 @@ def predict_raster(input_dataset: Dataset,
             input_dataset: the raster to perform inference on;
             model: the model which performs inference;
             output_path: the path at which to save the predicted raster;
-            tile_dim: the window size for inference;
-            scale_factor: the value to multiply input imagery by.
-
+            tile_dim: the window size for inference.
         Returns:
             None
         """
@@ -79,8 +76,6 @@ def predict_raster(input_dataset: Dataset,
                                                  xsize=tile_dim,
                                                  ysize=tile_dim)
 
-                tile = scale_factor * tile
-
                 # reshape to (1, height, width, channels) format for model.predict method
                 tile = expand_dims(moveaxis(tile,
                                             source=0,
@@ -102,8 +97,6 @@ def predict_raster(input_dataset: Dataset,
                                                  yoff=int(y_start),
                                                  xsize=tile_dim,
                                                  ysize=tile_dim)
-
-                tile = scale_factor * tile
 
                 # pad values over right edge, reshape tile to correct format
                 tile = pad(tile,
@@ -133,8 +126,6 @@ def predict_raster(input_dataset: Dataset,
                                                  xsize=tile_dim,
                                                  ysize=tile_dim)
 
-                tile = scale_factor * tile
-
                 # pad values over the bottom edge, reshape tile to correct format
                 tile = pad(tile,
                            pad_width=c_tile_pads,
@@ -161,8 +152,6 @@ def predict_raster(input_dataset: Dataset,
                                              yoff=int(y_start),
                                              xsize=tile_dim,
                                              ysize=tile_dim)
-
-            tile = scale_factor * tile
 
             # pad values over the right and bottom edges, reshape to correct tile format
             tile = pad(tile,
