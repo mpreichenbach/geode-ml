@@ -1,16 +1,15 @@
 # datasets.py
 
 from geode.utilities import convert_labels_to_one_hots, rasterize_polygon_layer, resample_dataset, tile_raster_pair
-from numpy import abs, flip, moveaxis, rot90
+from numpy import abs, expand_dims, moveaxis
 from numpy.testing import assert_allclose
 from numpy.random import randint, shuffle
 from os import listdir, mkdir
 from os.path import isdir, join, splitext
 from osgeo import gdal, ogr
 import tensorflow as tf
-from tensorflow.keras.layers import Concatenate, Input, Reshape
+from tensorflow.keras.layers import Concatenate, Input, InputSpec, Reshape
 from tensorflow.keras.layers.experimental import preprocessing
-from tensorflow.keras.models import Sequential
 from tensorflow.keras import Model
 
 
@@ -381,34 +380,38 @@ class SegmentationDataset:
         if self.tile_dimension == 0:
             raise Exception("The tile_generator attribute must be greater than 0.")
 
-        # define the model to do preprocessing
-        source_input = Input(shape=(self.tile_dimension, self.tile_dimension, self.n_channels), dtype=tf.float32)
-        label_input = Input(shape=(self.tile_dimension, self.tile_dimension), dtype=tf.float32)
-        lbl_reshape = Reshape(target_shape=(self.tile_dimension, self.tile_dimension, 1))(label_input)
-        pair_block = Concatenate()([source_input, lbl_reshape])
-        pair_block = preprocessing.RandomFlip('horizontal_and_vertical')(pair_block)
-
-        prep_model = Model(inputs=[source_input, label_input], outputs=pair_block)
-
         # create a local function to pass image/label pairs to the preprocessing model
+        @tf.function
         def augment(img, lbl):
-            prep_block = prep_model([img, lbl])
+            # prep_block = prep_model([img, lbl])
+            #
+            # return prep_block[:, :, :, 0:self.n_channels], prep_block[:, :, :, -1]
 
-            return prep_block[:, :, :, 0:self.n_channels], prep_block[:, :, :, -1]
+            # perform a random vertical flip
+            img, lbl = tf.cond(tf.greater(tf.random.uniform(()), 0.5),
+                               lambda: (tf.image.flip_left_right(img), tf.image.flip_left_right(lbl)),
+                               lambda: (img, lbl))
+
+            # perform a random rotation
+            rot_val = tf.random.uniform(shape=(), minval=0, maxval=3, dtype=tf.int32)
+            img = tf.image.rot90(img, k=rot_val)
+            lbl = tf.image.rot90(lbl, k=rot_val)
+
+            return img, lbl
 
         # define a generator object which will then define a tf.data.Dataset
         def generator():
             filenames = listdir(join(self.tiles_path, "imagery"))
+            shuffle(filenames)
             train_ids = range(len(filenames))
             while True:
-                if augment:
-                    shuffle(filenames)
                 for ID in train_ids:
                     img = gdal.Open(join(self.tiles_path, "imagery", filenames[ID])).ReadAsArray()
                     lbl = gdal.Open(join(self.tiles_path, "labels", filenames[ID])).ReadAsArray()
 
                     # reshape img to channels-last
                     img = moveaxis(img, 0, -1)
+                    lbl = expand_dims(lbl, -1)
 
                     # perform a one-hot encoding of the labels
                     if perform_one_hot:
@@ -419,12 +422,12 @@ class SegmentationDataset:
         # create the tf.data.Dataset object
         if perform_one_hot:
             output_signature = (
-                tf.TensorSpec(shape=(self.tile_dimension, self.tile_dimension, self.n_channels), dtype=tf.float32),
-                tf.TensorSpec(shape=(self.tile_dimension, self.tile_dimension, n_classes), dtype=tf.float32))
+                tf.TensorSpec(shape=(self.tile_dimension, self.tile_dimension, self.n_channels), dtype=tf.int8),
+                tf.TensorSpec(shape=(self.tile_dimension, self.tile_dimension, n_classes), dtype=tf.int8))
         else:
             output_signature = (
-                tf.TensorSpec(shape=(self.tile_dimension, self.tile_dimension, self.n_channels), dtype=tf.float32),
-                tf.TensorSpec(shape=(self.tile_dimension, self.tile_dimension), dtype=tf.float32))
+                tf.TensorSpec(shape=(self.tile_dimension, self.tile_dimension, self.n_channels), dtype=tf.int8),
+                tf.TensorSpec(shape=(self.tile_dimension, self.tile_dimension, 1), dtype=tf.int8))
 
         tf_ds = tf.data.Dataset.from_generator(
             generator,
@@ -432,16 +435,21 @@ class SegmentationDataset:
             output_signature=output_signature)
 
         # define the tf.data.Dataset
-        tf_ds = (
-            tf_ds
-            .shuffle(2 * batch_size)
-            .batch(batch_size)
-            .prefetch(tf.data.AUTOTUNE)
-        )
-
-        # apply augmentation
         if augmentation:
-            tf_ds.map(lambda x, y: augment(x, y),
-                      num_parallel_calls=tf.data.AUTOTUNE)
+            tf_ds = (
+                tf_ds
+                .shuffle(10 * batch_size, reshuffle_each_iteration=True)
+                .batch(batch_size)
+                .map(lambda x, y: augment(x, y),
+                     num_parallel_calls=tf.data.AUTOTUNE)
+                .prefetch(tf.data.AUTOTUNE)
+            )
+        else:
+            tf_ds = (
+                tf_ds
+                .shuffle(10 * batch_size, reshuffle_each_iteration=True)
+                .batch(batch_size)
+                .prefetch(tf.data.AUTOTUNE)
+            )
 
         return tf_ds
