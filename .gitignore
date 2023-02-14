@@ -6,5 +6,10 @@ geode/__pycache__/
 __pycache__/
 test/
 train_model.py
-
-
+nan_test.py
+VGG19.zip
+VGG19_0.zip
+VGG19_1.zip
+VGG19/
+VGG19_0/
+VGG19_1/

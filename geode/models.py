@@ -302,7 +302,9 @@ class VGG19Unet(SegmentationModel):
         model = tf.keras.Model(inputs=inputs, outputs=outputs)
 
         # compile the model
-        model.compile(loss=loss, optimizer=tf.keras.optimizers.Adam(learning_rate=learning_rate))
+        model.compile(loss=loss,
+                      optimizer=tf.keras.optimizers.Adam(learning_rate=learning_rate,
+                                                         clipvalue=1.0))
 
         self.model = model
 
@@ -432,6 +434,7 @@ class Unet(SegmentationModel):
         model = tf.keras.Model(inputs=inputs, outputs=outputs)
 
         # compile the model
-        model.compile(loss=loss, optimizer=tf.keras.optimizers.Adam(learning_rate=learning_rate))
+        model.compile(loss=loss, optimizer=tf.keras.optimizers.Adam(learning_rate=learning_rate,
+                                                                    clipvalue=1.0))
 
         self.model = model
