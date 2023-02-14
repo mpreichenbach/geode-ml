@@ -402,7 +402,8 @@ class SegmentationDataset:
         # define a generator object which will then define a tf.data.Dataset
         def generator():
             filenames = listdir(join(self.tiles_path, "imagery"))
-            shuffle(filenames)
+            if augment:
+                shuffle(filenames)
             train_ids = range(len(filenames))
             while True:
                 for ID in train_ids:
