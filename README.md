@@ -15,7 +15,12 @@ the cuDNN and CUDA Toolkit libraries with the **conda** package manager (if you 
 
 ```pip install tensorflow-gpu```
 
-After activating an environment which has both **GDAL** and **Tensorflow**, use **pip** to install **geode-ml**:
+on a Windows machine, or
+
+```pip install tensorflow```
+
+on a Linux machine. After activating an environment which has both **GDAL** and **Tensorflow**, use **pip** to install 
+**geode-ml**:
 
 ```
 pip install geode-ml
@@ -24,7 +29,7 @@ pip install geode-ml
 The geode.datasets module
 -------------------
 
-The datasets module currently contains the class:
+The datasets module currently contains the classes:
 
 1. SemanticSegmentation
 	* creates and processes pairs of imagery and label rasters for scenes
@@ -32,8 +37,8 @@ The datasets module currently contains the class:
 The geode.losses module
 --------------------
 
-The losses module contains custom loss functions for model training; these may be removed in the future when implemented
-in Tensorflow.
+The losses module contains custom loss functions for model training; these may be removed in the future when
+implementations are added to Keras.
 
 The geode.metrics module
 --------------------
@@ -45,10 +50,13 @@ The geode.models module
 
 The models module contains the classes:
 
-1. Segmentation
-	* subclass of the tensorflow.keras.Model class to be used for image segmentation
+1. SegmentationModel
+	* A class which contains methods to compute metrics on test datasets,
 2. Unet
-	* subclass of the Segmentation class which instantiates a Unet architecture.
+	* a subclass of the SegmentationModel class which instantiates a Unet architecture.
+3. VGG19UNet
+	* a subclass of the SegmentationModel class which instantiates a Unet architecture, but which mirrors the VGG19
+   	architecture for its downsampling and upsampling paths.
 
 The geode.utilities module
 --------------------
