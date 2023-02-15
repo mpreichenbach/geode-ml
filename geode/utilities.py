@@ -1,19 +1,35 @@
 # utilities.py
 
-from numpy import arange, argmax, expand_dims, moveaxis, pad, squeeze, sum, uint8, unique, zeros
+from numpy import arange, argmax, expand_dims, moveaxis, ndarray, pad, squeeze, sum, uint8, unique, zeros
 from os.path import join, splitext
 from osgeo.gdal import Dataset,  GDT_Byte, GetDriverByName, RasterizeLayer, Translate, Warp
 from osgeo.ogr import DataSource
 from tensorflow.keras import Model
 
 
-def convert_labels_to_one_hots(label_array, n_classes):
-    """Converts integer labels with shape (n_images, height, width) to one-hot encodings."""
+def convert_labels_to_one_hots(label_array: ndarray,
+                               n_classes: int) -> ndarray:
+    """Converts integer labels with shape (n_images, height, width) to one-hot encodings.
+
+    Args:
+        label_array: a numpy array of integer-valued labels (from 0 to n_classes - 1);;
+        n_classes: the number of classes in the dataset.
+
+    Returns
+        A one-hot encoded array.
+
+    Raises:
+        Exception: if the input arrays have the wrong dimensions."""
 
     enc = zeros(label_array.shape + (n_classes,), dtype=uint8)
 
     for i in range(n_classes):
-        enc[:, :, i][label_array == i] = 1
+        if len(enc.shape) == 3:
+            enc[:, :, i][label_array == i] = 1
+        elif len(enc.shape) == 4:
+            enc[:, :, :, i][label_array == i] = 1
+        else:
+            raise Exception("Input arrays do not have the dimensions (width, height) or (batch_size, width, height).")
 
     return enc
 
