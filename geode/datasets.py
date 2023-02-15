@@ -412,11 +412,12 @@ class SegmentationDataset:
 
                     # reshape img to channels-last
                     img = moveaxis(img, 0, -1)
-                    lbl = expand_dims(lbl, -1)
 
-                    # perform a one-hot encoding of the labels
+                    # perform a one-hot encoding of the labels (creates n_channels dimension either way)
                     if perform_one_hot:
                         lbl = convert_labels_to_one_hots(lbl, n_classes)
+                    else:
+                        lbl = expand_dims(lbl, -1)
 
                     yield img, lbl
 
