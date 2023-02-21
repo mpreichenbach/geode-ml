@@ -424,12 +424,12 @@ class SegmentationDataset:
         # create the tf.data.Dataset object
         if perform_one_hot:
             output_signature = (
-                tf.TensorSpec(shape=(self.tile_dimension, self.tile_dimension, self.n_channels), dtype=tf.int8),
-                tf.TensorSpec(shape=(self.tile_dimension, self.tile_dimension, n_classes), dtype=tf.int8))
+                tf.TensorSpec(shape=(self.tile_dimension, self.tile_dimension, self.n_channels), dtype=tf.float32),
+                tf.TensorSpec(shape=(self.tile_dimension, self.tile_dimension, n_classes), dtype=tf.float32))
         else:
             output_signature = (
-                tf.TensorSpec(shape=(self.tile_dimension, self.tile_dimension, self.n_channels), dtype=tf.int8),
-                tf.TensorSpec(shape=(self.tile_dimension, self.tile_dimension, 1), dtype=tf.int8))
+                tf.TensorSpec(shape=(self.tile_dimension, self.tile_dimension, self.n_channels), dtype=tf.float32),
+                tf.TensorSpec(shape=(self.tile_dimension, self.tile_dimension, 1), dtype=tf.float32))
 
         tf_ds = tf.data.Dataset.from_generator(
             generator,

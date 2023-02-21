@@ -428,13 +428,13 @@ class Unet(SegmentationModel):
         outputs = Conv2D(filters=self.n_classes,
                          kernel_size=(1, 1),
                          padding='same',
-                         activation='softmax')(u0_out)
+                         activation='sigmoid')(u0_out)
 
         # create the model object
         model = tf.keras.Model(inputs=inputs, outputs=outputs)
 
         # compile the model
-        model.compile(loss=loss, optimizer=tf.keras.optimizers.Adam(learning_rate=learning_rate,
-                                                                    clipnorm=1.0))
+        model.compile(loss=loss,
+                      optimizer=tf.keras.optimizers.Adam(learning_rate=learning_rate))
 
         self.model = model

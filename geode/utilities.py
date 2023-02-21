@@ -1,6 +1,6 @@
 # utilities.py
 
-from numpy import arange, argmax, expand_dims, moveaxis, ndarray, pad, squeeze, sum, uint8, unique, zeros
+from numpy import arange, argmax, expand_dims, moveaxis, ndarray, pad, squeeze, sum, uint8, unique, where, zeros
 from os.path import join, splitext
 from osgeo.gdal import Dataset,  GDT_Byte, GetDriverByName, RasterizeLayer, Translate, Warp
 from osgeo.ogr import DataSource
@@ -59,6 +59,7 @@ def predict_raster(input_dataset: Dataset,
         input_width = input_dataset.RasterXSize
         input_height = input_dataset.RasterYSize
         n_bands = input_dataset.RasterCount
+        output_depth = model.output.shape[-1]
 
         # get the dimensions of Region A
         n_col = int(input_width / tile_dim)
@@ -97,7 +98,14 @@ def predict_raster(input_dataset: Dataset,
                                             source=0,
                                             destination=2),
                                    axis=0)
-                pred_tile = argmax(squeeze(model.predict(tile)), axis=-1).astype(uint8)
+                pred_tile = model.predict(tile)
+
+                # assign label via thresholding or argmax
+                if output_depth == 1:
+                    pred_tile = squeeze(model.predict(tile))
+                    pred_tile = where(pred_tile > 0.5, 1, 0)
+                else:
+                    pred_tile = argmax(pred_tile, axis=-1).astype(uint8)
 
                 # store the predictions into the initialized array
                 pred[y_start:(y_start + tile_dim), x_start:(x_start + tile_dim)] = pred_tile
@@ -123,11 +131,18 @@ def predict_raster(input_dataset: Dataset,
                                             source=0,
                                             destination=2),
                                    axis=0)
-                tile = tile.reshape((1, tile_dim, tile_dim, n_bands))
+                pred_tile = model.predict(tile)
 
-                # perform inference, remove padding, and update the full prediction array
-                pred_tile = argmax(squeeze(model.predict(tile)), axis=-1).astype(uint8)
+                # assign label via thresholding or argmax
+                if output_depth == 1:
+                    pred_tile = squeeze(model.predict(tile))
+                    pred_tile = where(pred_tile > 0.5, 1, 0)
+                else:
+                    pred_tile = argmax(pred_tile, axis=-1).astype(uint8)
+
                 pred_tile = pred_tile[:, 0:b_width]
+
+                # store the predictions into the initialized array
                 pred[y_start:(y_start + tile_dim), (input_width - b_width):input_width] = pred_tile
 
         # perform inference over Region C
@@ -151,11 +166,18 @@ def predict_raster(input_dataset: Dataset,
                                             source=0,
                                             destination=2),
                                    axis=0)
-                tile = tile.reshape((1, tile_dim, tile_dim, n_bands))
+                pred_tile = model.predict(tile)
 
-                # perform inference
-                pred_tile = argmax(squeeze(model.predict(tile)), axis=-1).astype(uint8)
+                # assign label via thresholding or argmax
+                if output_depth == 1:
+                    pred_tile = squeeze(model.predict(tile))
+                    pred_tile = where(pred_tile > 0.5, 1, 0)
+                else:
+                    pred_tile = argmax(pred_tile, axis=-1).astype(uint8)
+
                 pred_tile = pred_tile[0:c_height, :]
+
+                # store the predictions into the initialized array
                 pred[(input_height - c_height):input_height, x_start:(x_start + tile_dim)] = pred_tile
 
         # perform inference over Region D
@@ -178,11 +200,17 @@ def predict_raster(input_dataset: Dataset,
                                         source=0,
                                         destination=2),
                                axis=0)
-            tile = tile.reshape((1, tile.shape[1], tile.shape[2], n_bands))
+            pred_tile = model.predict(tile)
 
-            # perform inference
-            pred_tile = argmax(squeeze(model.predict(tile)), axis=-1).astype(uint8)
+            # assign label via thresholding or argmax
+            if output_depth == 1:
+                pred_tile = squeeze(model.predict(tile))
+                pred_tile = where(pred_tile > 0.5, 1, 0)
+            else:
+                pred_tile = argmax(pred_tile, axis=-1).astype(uint8)
             pred_tile = pred_tile[0:c_height, 0:b_width]
+
+            # store the predictions into the initialized array
             pred[(input_height - d_height):input_height, (input_width - d_width):input_width] = pred_tile
 
         # check that the output_path specifies a tif file:

@@ -8,3 +8,4 @@ test/
 train_model.py
 nan_test.py
 *.zip
+bin_test.py

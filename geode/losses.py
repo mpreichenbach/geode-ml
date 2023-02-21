@@ -14,14 +14,9 @@ def iou_loss(y_true, y_pred):
     y_true = tf.cast(y_true, tf.float32)
     y_pred = tf.cast(y_pred, tf.float32)
 
-    # ensures no division by zero, which can occur when a model accurately predicts no instances of the class.
-    smooth = 1
+    intersection = K.sum(K.flatten(y_true * y_pred))
+    union = K.sum(K.flatten(y_true + y_pred - y_true * y_pred)) + 1
 
-    intersection = 2 * K.sum(K.flatten(y_true * y_pred))
-    union = K.sum(K.flatten(y_true + y_pred - y_true * y_pred)) + smooth
-
-    # perfect overlap yields a value slightly greater than 0, and perfect non-overlap yields a value slightly less than
-    # 1, due to the inclusion of the smooth parameter
     final = 1 - intersection / union
 
     return final
@@ -37,14 +32,9 @@ def log_iou_loss(y_true, y_pred):
     y_true = tf.cast(y_true, tf.float32)
     y_pred = tf.cast(y_pred, tf.float32)
 
-    # ensures a nonzero numerator and denominator, so that the logarithm is well-defined.
-    smooth = 1
+    intersection = K.sum(K.flatten(y_true * y_pred)) + 1
+    union = K.sum(K.flatten(y_true + y_pred - y_true * y_pred)) + 1
 
-    intersection = K.sum(K.flatten(y_true * y_pred)) + smooth
-    union = K.sum(K.flatten(y_true + y_pred - y_true * y_pred)) + smooth
-
-    # perfect overlap yields a value of 0, and perfect non-overlap yields a value greater than 1, which depends on the
-    # dimensions of the image.
     final = - K.log(intersection / union)
 
     return final
