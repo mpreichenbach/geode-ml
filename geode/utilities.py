@@ -98,7 +98,7 @@ def predict_raster(input_dataset: Dataset,
                                             source=0,
                                             destination=2),
                                    axis=0)
-                pred_tile = model.predict(tile)
+                pred_tile = squeeze(model.predict(tile))
 
                 # assign label via thresholding or argmax
                 if output_depth == 1:
@@ -131,11 +131,10 @@ def predict_raster(input_dataset: Dataset,
                                             source=0,
                                             destination=2),
                                    axis=0)
-                pred_tile = model.predict(tile)
+                pred_tile = squeeze(model.predict(tile))
 
                 # assign label via thresholding or argmax
                 if output_depth == 1:
-                    pred_tile = squeeze(model.predict(tile))
                     pred_tile = where(pred_tile > 0.5, 1, 0)
                 else:
                     pred_tile = argmax(pred_tile, axis=-1).astype(uint8)
@@ -166,7 +165,7 @@ def predict_raster(input_dataset: Dataset,
                                             source=0,
                                             destination=2),
                                    axis=0)
-                pred_tile = model.predict(tile)
+                pred_tile = squeeze(model.predict(tile))
 
                 # assign label via thresholding or argmax
                 if output_depth == 1:
@@ -200,7 +199,7 @@ def predict_raster(input_dataset: Dataset,
                                         source=0,
                                         destination=2),
                                axis=0)
-            pred_tile = model.predict(tile)
+            pred_tile = squeeze(model.predict(tile))
 
             # assign label via thresholding or argmax
             if output_depth == 1:
