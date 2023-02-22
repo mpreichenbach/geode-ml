@@ -162,6 +162,11 @@ class VGG19Unet(SegmentationModel):
         self.n_filters = n_filters
         self.dropout_rate = dropout_rate
 
+        if n_channels == 1:
+            self.activation = 'sigmoid'
+        else:
+            self.activation = 'softmax'
+
     def compile_model(self, loss: tf.keras.losses.Loss = 'sparse_categorical_crossentropy',
                       learning_rate: float = 0.001,
                       rescale_factor: float = 1 / 255,
@@ -296,7 +301,7 @@ class VGG19Unet(SegmentationModel):
         outputs = Conv2D(filters=self.n_classes,
                          kernel_size=(1, 1),
                          padding='same',
-                         activation='softmax')(u0_out)
+                         activation=self.activation)(u0_out)
 
         # create the model object
         model = tf.keras.Model(inputs=inputs, outputs=outputs)
@@ -324,6 +329,11 @@ class Unet(SegmentationModel):
         self.n_classes = n_classes
         self.n_filters = n_filters
         self.dropout_rate = dropout_rate
+
+        if n_channels == 1:
+            self.activation = 'sigmoid'
+        else:
+            self.activation = 'softmax'
 
     def compile_model(self, loss: tf.keras.losses.Loss = 'sparse_categorical_crossentropy',
                       learning_rate: float = 0.001,
@@ -428,7 +438,7 @@ class Unet(SegmentationModel):
         outputs = Conv2D(filters=self.n_classes,
                          kernel_size=(1, 1),
                          padding='same',
-                         activation='sigmoid')(u0_out)
+                         activation=self.activation)(u0_out)
 
         # create the model object
         model = tf.keras.Model(inputs=inputs, outputs=outputs)
