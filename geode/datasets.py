@@ -3,14 +3,11 @@
 from geode.utilities import convert_labels_to_one_hots, rasterize_polygon_layer, resample_dataset, tile_raster_pair
 from numpy import abs, expand_dims, moveaxis
 from numpy.testing import assert_allclose
-from numpy.random import randint, shuffle
+from numpy.random import shuffle
 from os import listdir, mkdir
 from os.path import isdir, join, splitext
 from osgeo import gdal, ogr
 import tensorflow as tf
-from tensorflow.keras.layers import Concatenate, Input, InputSpec, Reshape
-from tensorflow.keras.layers.experimental import preprocessing
-from tensorflow.keras import Model
 
 
 class SegmentationDataset:
