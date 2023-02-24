@@ -1,6 +1,5 @@
 # losses.py
 
-import tensorflow as tf
 from tensorflow.keras import backend as K
 
 
@@ -10,9 +9,6 @@ def iou_loss(y_true, y_pred):
     Args:
         y_true: tensor of ground-truth values of size (batch, height, width);
         y_pred: tensor of model predictions of size (batch, height, width)."""
-
-    y_true = tf.cast(y_true, tf.float32)
-    y_pred = tf.cast(y_pred, tf.float32)
 
     intersection = K.sum(K.flatten(y_true * y_pred))
     union = K.sum(K.flatten(y_true + y_pred - y_true * y_pred)) + 1
@@ -28,9 +24,6 @@ def log_iou_loss(y_true, y_pred):
     Args:
         y_true: tensor of ground-truth values of size (batch, height, width), so not one-hot encoded;
         y_pred: tensor of model predictions of size (batch, height, width, 2), so one-hot encoded."""
-
-    y_true = tf.cast(y_true, tf.float32)
-    y_pred = tf.cast(y_pred, tf.float32)
 
     intersection = K.sum(K.flatten(y_true * y_pred)) + 1
     union = K.sum(K.flatten(y_true + y_pred - y_true * y_pred)) + 1
