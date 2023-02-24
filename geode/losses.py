@@ -9,7 +9,8 @@ def dice_loss(y_true, y_pred, smooth=100):
 
     Args:
         y_true: tensor of ground-truth values of size (batch, height, width, n_classes;
-        y_pred: tensor of model predictions of size (batch, height, width, n_classes)."""
+        y_pred: tensor of model predictions of size (batch, height, width, n_classes);
+        smooth: a value to avoid division by zero (among other things)."""
 
     y_true = K.cast(y_true, dtype=tf.float32)
     y_pred = K.cast(y_pred, dtype=tf.float32)
@@ -28,7 +29,8 @@ def iou_loss(y_true, y_pred, smooth=100):
 
     Args:
         y_true: tensor of ground-truth values of size (batch, height, width);
-        y_pred: tensor of model predictions of size (batch, height, width)."""
+        y_pred: tensor of model predictions of size (batch, height, width);
+        smooth: a value to avoid division by zero (among other things)."""
 
     y_true = K.cast(y_true, dtype=tf.float32)
     y_pred = K.cast(y_pred, dtype=tf.float32)
