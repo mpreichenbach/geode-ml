@@ -7,7 +7,8 @@ from os import listdir, makedirs
 from os.path import isdir, join
 from osgeo.gdal import Open
 import tensorflow as tf
-from tensorflow.keras.layers import Add, BatchNormalization, Concatenate, Conv2D, Dropout, Input, MaxPooling2D, UpSampling2D
+from tensorflow.keras.layers import Add, BatchNormalization, Concatenate, Conv2D, Dropout, Input, MaxPooling2D, \
+    UpSampling2D
 from tensorflow.keras.layers.experimental.preprocessing import Rescaling
 
 
@@ -151,7 +152,10 @@ class VGG19Unet(SegmentationModel):
     def __init__(self, n_channels: int = 3,
                  n_classes: int = 2,
                  n_filters: int = 16,
-                 dropout_rate: float = 0.3):
+                 dropout_rate: float = 0.3,
+                 rescale_factor: float = 1 / 255,
+                 include_residual: bool = False,
+                 one_hot_output: bool = False):
 
         # initialize the superclass
         super().__init__()
@@ -161,35 +165,22 @@ class VGG19Unet(SegmentationModel):
         self.n_classes = n_classes
         self.n_filters = n_filters
         self.dropout_rate = dropout_rate
+        self.one_hot_output = one_hot_output
 
-        if n_channels == 1:
+        # ensure that n_classes >= 2
+        if self.n_classes < 2:
+            raise Exception("Number of classes must at least 2.")
+
+        # define the activation and number of filters in the final layer
+        if not self.one_hot_output and self.n_classes == 2:
             self.activation = 'sigmoid'
+            self.output_filters = 1
         else:
             self.activation = 'softmax'
+            self.output_filters = self.n_classes
 
-    def compile_model(self, loss: tf.keras.losses.Loss = 'sparse_categorical_crossentropy',
-                      learning_rate: float = 0.001,
-                      rescale_factor: float = 1 / 255,
-                      include_residual: bool = False,
-                      include_attention: bool = False
-                      ) -> None:
-
-        """Returns a model object, compiled with the provided loss and optimizer. Additionally, this sets the self.model
-        attribute with the compiled model.
-
-        Args:
-            loss: the loss function to use during training;
-            learning_rate: the starting learning rate for the Adam optimizer;
-            rescale_factor: the factor by which to rescale the input tensor;
-            include_residual: incorporate a residual connection into each convolutional block;
-            include_attention: incorporate an attention module into each skip-connection.
-
-        Returns:
-            None"""
-
+        # define the layers and model
         include_dropout = (self.dropout_rate > 0.0)
-
-        # build the model graph
 
         def conv_block(input_tensor,
                        filters):
@@ -202,8 +193,6 @@ class VGG19Unet(SegmentationModel):
             batch_norm = BatchNormalization()(dropout)
 
             return batch_norm
-
-        # build the model graph
 
         # level 0
         inputs = Input(shape=(None, None, self.n_channels), dtype=tf.float32)
@@ -298,20 +287,30 @@ class VGG19Unet(SegmentationModel):
         u0_conv_4 = conv_block(u0_conv_3, filters=self.n_filters)
         u0_out = Add()([u0_conv_3, u0_conv_4]) if include_residual else u0_conv_4
 
-        outputs = Conv2D(filters=self.n_classes,
+        outputs = Conv2D(filters=self.output_filters,
                          kernel_size=(1, 1),
                          padding='same',
                          activation=self.activation)(u0_out)
 
         # create the model object
-        model = tf.keras.Model(inputs=inputs, outputs=outputs)
+        self.model = tf.keras.Model(inputs=inputs, outputs=outputs)
+
+    def compile(self, loss = None,
+                      learning_rate: float = 0.001) -> None:
+
+        """Returns a model object, compiled with the provided loss and optimizer. Additionally, this sets the self.model
+        attribute with the compiled model.
+
+        Args:
+            loss: the loss function to use during training;
+            learning_rate: the starting learning rate for the Adam optimizer.
+
+        Returns:
+            None"""
 
         # compile the model
-        model.compile(loss=loss,
-                      optimizer=tf.keras.optimizers.Adam(learning_rate=learning_rate,
-                                                         clipnorm=1.0))
-
-        self.model = model
+        self.model.compile(loss=loss,
+                           optimizer=tf.keras.optimizers.Adam(learning_rate=learning_rate))
 
 
 class Unet(SegmentationModel):
@@ -334,6 +333,8 @@ class Unet(SegmentationModel):
             self.activation = 'sigmoid'
         else:
             self.activation = 'softmax'
+
+            
 
     def compile_model(self, loss: tf.keras.losses.Loss = 'sparse_categorical_crossentropy',
                       learning_rate: float = 0.001,
@@ -443,8 +444,18 @@ class Unet(SegmentationModel):
         # create the model object
         model = tf.keras.Model(inputs=inputs, outputs=outputs)
 
-        # compile the model
-        model.compile(loss=loss,
-                      optimizer=tf.keras.optimizers.Adam(learning_rate=learning_rate))
+        def compile(self, loss=None,
+                    learning_rate: float = 0.001) -> None:
+            """Returns a model object, compiled with the provided loss and optimizer. Additionally, this sets the self.model
+            attribute with the compiled model.
 
-        self.model = model
+            Args:
+                loss: the loss function to use during training;
+                learning_rate: the starting learning rate for the Adam optimizer.
+
+            Returns:
+                None"""
+
+            # compile the model
+            self.model.compile(loss=loss,
+                               optimizer=tf.keras.optimizers.Adam(learning_rate=learning_rate))

@@ -4,7 +4,7 @@ import tensorflow as tf
 from tensorflow.keras import backend as K
 
 
-def dice_loss(y_true, y_pred, smooth=100):
+def dice_loss(y_true, y_pred, smooth=100.):
     """Computes the dice-loss between one-hot encoded arrays, then returns a score between [0, 1].
 
     Args:
@@ -24,7 +24,7 @@ def dice_loss(y_true, y_pred, smooth=100):
     return 1 - dice
 
 
-def iou_loss(y_true, y_pred, smooth=100):
+def iou_loss(y_true, y_pred, smooth=100.):
     """Computes the IoU-loss between one-hot encoded arrays, then return a loss score between [0, 1].
 
     Args:
@@ -42,7 +42,7 @@ def iou_loss(y_true, y_pred, smooth=100):
 
     return 1 - iou
 
-def log_iou_loss(y_true, y_pred, smooth=100):
+def log_iou_loss(y_true, y_pred, smooth=100.):
     """Computes a variation of the -log(IoU) loss introduced in 'Unitbox': An Advanced Object Detection Network, with
     a smoothing parameter to (among other things) avoid division by zero.
 
