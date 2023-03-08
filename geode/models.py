@@ -318,7 +318,10 @@ class Unet(SegmentationModel):
     def __init__(self, n_channels: int = 3,
                  n_classes: int = 2,
                  n_filters: int = 16,
-                 dropout_rate: float = 0.3):
+                 dropout_rate: float = 0.3,
+                 rescale_factor: float = 1 / 255,
+                 include_residual: bool = False,
+                 one_hot_output: bool = False):
 
         # initialize the superclass
         super().__init__()
@@ -328,32 +331,19 @@ class Unet(SegmentationModel):
         self.n_classes = n_classes
         self.n_filters = n_filters
         self.dropout_rate = dropout_rate
+        self.one_hot_output = one_hot_output
 
-        if n_channels == 1:
+        # ensure that n_classes >= 2
+        if self.n_classes < 2:
+            raise Exception("Number of classes must at least 2.")
+
+        # define the activation and number of filters in the final layer
+        if not self.one_hot_output and self.n_classes == 2:
             self.activation = 'sigmoid'
+            self.output_filters = 1
         else:
             self.activation = 'softmax'
-
-            
-
-    def compile_model(self, loss: tf.keras.losses.Loss = 'sparse_categorical_crossentropy',
-                      learning_rate: float = 0.001,
-                      rescale_factor: float = 1 / 255,
-                      include_residual: bool = False,
-                      include_attention: bool = False) -> None:
-
-        """Returns a model object, compiled with the provided loss and optimizer. Additionally, this sets the self.model
-        attribute with the compiled model.
-
-        Args:
-            loss: the loss function to use during training;
-            learning_rate: the starting learning rate for the Adam optimizer;
-            rescale_factor: the factor by which to rescale the input tensor;
-            include_residual: include residual connections in each level;
-            include_attention: include an attention module for each skip-connection.
-
-        Returns:
-            None"""
+            self.output_filters = self.n_classes
 
         include_dropout = (self.dropout_rate > 0.0)
 
@@ -442,20 +432,21 @@ class Unet(SegmentationModel):
                          activation=self.activation)(u0_out)
 
         # create the model object
-        model = tf.keras.Model(inputs=inputs, outputs=outputs)
+        self.model = tf.keras.Model(inputs=inputs, outputs=outputs)
 
-        def compile(self, loss=None,
-                    learning_rate: float = 0.001) -> None:
-            """Returns a model object, compiled with the provided loss and optimizer. Additionally, this sets the self.model
-            attribute with the compiled model.
+    def compile(self, loss=None,
+                learning_rate: float = 0.001) -> None:
 
-            Args:
-                loss: the loss function to use during training;
-                learning_rate: the starting learning rate for the Adam optimizer.
+        """Returns a model object, compiled with the provided loss and optimizer. Additionally, this sets the self.model
+        attribute with the compiled model.
 
-            Returns:
-                None"""
+        Args:
+            loss: the loss function to use during training;
+            learning_rate: the starting learning rate for the Adam optimizer.
 
-            # compile the model
-            self.model.compile(loss=loss,
-                               optimizer=tf.keras.optimizers.Adam(learning_rate=learning_rate))
+        Returns:
+            None"""
+
+        # compile the model
+        self.model.compile(loss=loss,
+                           optimizer=tf.keras.optimizers.Adam(learning_rate=learning_rate))
