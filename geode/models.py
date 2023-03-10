@@ -154,8 +154,7 @@ class VGG19Unet(SegmentationModel):
                  n_filters: int = 16,
                  dropout_rate: float = 0.3,
                  rescale_factor: float = 1 / 255,
-                 include_residual: bool = False,
-                 one_hot_output: bool = False):
+                 include_residual: bool = False):
 
         # initialize the superclass
         super().__init__()
@@ -165,19 +164,10 @@ class VGG19Unet(SegmentationModel):
         self.n_classes = n_classes
         self.n_filters = n_filters
         self.dropout_rate = dropout_rate
-        self.one_hot_output = one_hot_output
 
         # ensure that n_classes >= 2
         if self.n_classes < 2:
             raise Exception("Number of classes must at least 2.")
-
-        # define the activation and number of filters in the final layer
-        if not self.one_hot_output and self.n_classes == 2:
-            self.activation = 'sigmoid'
-            self.output_filters = 1
-        else:
-            self.activation = 'softmax'
-            self.output_filters = self.n_classes
 
         # define the layers and model
         include_dropout = (self.dropout_rate > 0.0)
@@ -287,16 +277,16 @@ class VGG19Unet(SegmentationModel):
         u0_conv_4 = conv_block(u0_conv_3, filters=self.n_filters)
         u0_out = Add()([u0_conv_3, u0_conv_4]) if include_residual else u0_conv_4
 
-        outputs = Conv2D(filters=self.output_filters,
+        outputs = Conv2D(filters=self.n_classes,
                          kernel_size=(1, 1),
                          padding='same',
-                         activation=self.activation)(u0_out)
+                         activation='softmax')(u0_out)
 
         # create the model object
         self.model = tf.keras.Model(inputs=inputs, outputs=outputs)
 
-    def compile(self, loss = None,
-                      learning_rate: float = 0.001) -> None:
+    def compile(self, loss=None,
+                learning_rate: float = 0.001) -> None:
 
         """Returns a model object, compiled with the provided loss and optimizer. Additionally, this sets the self.model
         attribute with the compiled model.
@@ -320,8 +310,7 @@ class Unet(SegmentationModel):
                  n_filters: int = 16,
                  dropout_rate: float = 0.3,
                  rescale_factor: float = 1 / 255,
-                 include_residual: bool = False,
-                 one_hot_output: bool = False):
+                 include_residual: bool = False):
 
         # initialize the superclass
         super().__init__()
@@ -331,19 +320,10 @@ class Unet(SegmentationModel):
         self.n_classes = n_classes
         self.n_filters = n_filters
         self.dropout_rate = dropout_rate
-        self.one_hot_output = one_hot_output
 
         # ensure that n_classes >= 2
         if self.n_classes < 2:
             raise Exception("Number of classes must at least 2.")
-
-        # define the activation and number of filters in the final layer
-        if not self.one_hot_output and self.n_classes == 2:
-            self.activation = 'sigmoid'
-            self.output_filters = 1
-        else:
-            self.activation = 'softmax'
-            self.output_filters = self.n_classes
 
         include_dropout = (self.dropout_rate > 0.0)
 
@@ -429,7 +409,7 @@ class Unet(SegmentationModel):
         outputs = Conv2D(filters=self.n_classes,
                          kernel_size=(1, 1),
                          padding='same',
-                         activation=self.activation)(u0_out)
+                         activation='softmax')(u0_out)
 
         # create the model object
         self.model = tf.keras.Model(inputs=inputs, outputs=outputs)

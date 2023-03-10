@@ -17,9 +17,7 @@ def convert_labels_to_one_hots(label_array: ndarray,
 
     Returns
         A one-hot encoded array.
-
-    Raises:
-        Exception: if the input arrays have the wrong dimensions."""
+    """
 
     enc = zeros(label_array.shape + (n_classes,), dtype=uint8)
 
