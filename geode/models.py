@@ -288,8 +288,8 @@ class VGG19Unet(SegmentationModel):
     def compile(self, loss=None,
                 learning_rate: float = 0.001) -> None:
 
-        """Returns a model object, compiled with the provided loss and optimizer. Additionally, this sets the self.model
-        attribute with the compiled model.
+        """Compiles the model attribute with the given loss function, and an Adam optimizer with the provided learning
+        rate.
 
         Args:
             loss: the loss function to use during training;
@@ -417,8 +417,8 @@ class Unet(SegmentationModel):
     def compile(self, loss=None,
                 learning_rate: float = 0.001) -> None:
 
-        """Returns a model object, compiled with the provided loss and optimizer. Additionally, this sets the self.model
-        attribute with the compiled model.
+        """Compiles the model attribute with the given loss function, and an Adam optimizer with the provided learning
+        rate.
 
         Args:
             loss: the loss function to use during training;
