@@ -208,12 +208,13 @@ class SegmentationDataset:
 
         return self.source_metadata
 
-    def generate_tiles(self, label_proportion: float = 0.2,
+    def generate_tiles(self, stride_length: int = 0,
+                       label_proportion: float = 0.2,
                        verbose: bool = True) -> None:
-        """Generates image tiles from the source and label imagery for use in model training. I followed the process
-        given in the video https://www.youtube.com/watch?v=H5uQ85VXttg.
+        """Generates image tiles from the source and label imagery for use in model training.
 
         Args:
+            stride_length: the number of pixels of overlap between tiles (default of 0 means tile_dimension);
             label_proportion: the minimum proportion which any single class must have per tile;
             verbose: whether to print progress to the console.
 
@@ -247,6 +248,7 @@ class SegmentationDataset:
             tile_raster_pair(rgb=rgb,
                              labels=labels,
                              tile_dimension=self.tile_dimension,
+                             stride_length=stride_length,
                              label_proportion=self.label_proportion,
                              imagery_tiles_dir=imagery_tiles_dir,
                              label_tiles_dir=label_tiles_dir,

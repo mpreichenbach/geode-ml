@@ -24,177 +24,73 @@ def convert_labels_to_one_hots(label_array: ndarray,
     enc = zeros(label_array.shape + (n_classes,), dtype=uint8)
 
     for i in range(n_classes):
-        if len(enc.shape) == 3:
-            enc[:, :, i][label_array == i] = 1
-        elif len(enc.shape) == 4:
-            enc[:, :, :, i][label_array == i] = 1
-        else:
-            raise Exception("Input arrays do not have the dimensions (width, height) or (batch_size, width, height).")
+        enc[..., i][label_array == i] = 1
 
     return enc
+
 
 def convert_vectors_to_labels(oh_array):
     output = argmax(oh_array, axis=-1).astype(uint8)
 
     return output
 
+
 def predict_raster(input_dataset: Dataset,
                    model: Model,
                    output_path: str,
                    tile_dim: int = 1024) -> None:
-        """Performs the inference using the supplied model, and reads tiles one-by-one from the input dataset, to avoid
-        overrunning the RAM by reading the entire raster into memory. Performs inference on four regions, denoted by A,
-        B, C, and D.
+    """Performs the inference using the supplied model, and reads tiles one-by-one from the input dataset, to avoid
+    overrunning the RAM by reading the entire raster into memory. Performs inference on four regions, denoted by A,
+    B, C, and D.
 
-        Args:
-            input_dataset: the raster to perform inference on;
-            model: the model which performs inference;
-            output_path: the path at which to save the predicted raster;
-            tile_dim: the window size for inference.
-        Returns:
-            None
-        """
+    Args:
+        input_dataset: the raster to perform inference on;
+        model: the model which performs inference;
+        output_path: the path at which to save the predicted raster;
+        tile_dim: the window size for inference.
 
-        # get the input raster dimensions and tile size
-        input_width = input_dataset.RasterXSize
-        input_height = input_dataset.RasterYSize
-        n_bands = input_dataset.RasterCount
-        output_depth = model.output.shape[-1]
+    Returns:
+        None
+    """
 
-        # get the dimensions of Region A
-        n_col = int(input_width / tile_dim)
-        n_row = int(input_height / tile_dim)
-        a_width = tile_dim * n_col
-        a_height = tile_dim * n_row
+    # get the input raster dimensions and tile size
+    input_width = input_dataset.RasterXSize
+    input_height = input_dataset.RasterYSize
+    output_depth = model.output.shape[-1]
 
-        # get the dimensions of Region B
-        b_width = input_width - a_width
-        b_tile_pads = ((0, 0), (0, 0), (0, tile_dim - b_width))
+    # get the dimensions of Region A
+    n_col = int(input_width / tile_dim)
+    n_row = int(input_height / tile_dim)
+    a_width = tile_dim * n_col
+    a_height = tile_dim * n_row
 
-        # get the dimensions of Region C
-        c_height = input_height - a_height
-        c_tile_pads = ((0, 0), (0, tile_dim - c_height), (0, 0))
+    # get the dimensions of Region B
+    b_width = input_width - a_width
+    b_tile_pads = ((0, 0), (0, 0), (0, tile_dim - b_width))
 
-        # get the dimensions of Region D
-        d_width = b_width
-        d_height = c_height
-        d_tile_pads = ((0, 0), (0, tile_dim - c_height), (0, tile_dim - b_width))
+    # get the dimensions of Region C
+    c_height = input_height - a_height
+    c_tile_pads = ((0, 0), (0, tile_dim - c_height), (0, 0))
 
-        # initialize the predictions array
-        pred = zeros((input_height, input_width), dtype=uint8)
+    # get the dimensions of Region D
+    d_width = b_width
+    d_height = c_height
+    d_tile_pads = ((0, 0), (0, tile_dim - c_height), (0, tile_dim - b_width))
 
-        # perform inference over Region A
-        for row in range(n_row):
-            y_start = row * tile_dim
-            for col in range(n_col):
-                x_start = col * tile_dim
-                tile = input_dataset.ReadAsArray(xoff=int(x_start),
-                                                 yoff=int(y_start),
-                                                 xsize=tile_dim,
-                                                 ysize=tile_dim)
+    # initialize the predictions array
+    pred = zeros((input_height, input_width), dtype=uint8)
 
-                # reshape to (1, height, width, channels) format for model.predict method
-                tile = expand_dims(moveaxis(tile,
-                                            source=0,
-                                            destination=2),
-                                   axis=0)
-                pred_tile = squeeze(model.predict(tile))
-
-                # assign label via thresholding or argmax
-                if output_depth == 1:
-                    pred_tile = squeeze(model.predict(tile))
-                    pred_tile = where(pred_tile > 0.5, 1, 0)
-                else:
-                    pred_tile = argmax(pred_tile, axis=-1).astype(uint8)
-
-                # store the predictions into the initialized array
-                pred[y_start:(y_start + tile_dim), x_start:(x_start + tile_dim)] = pred_tile
-
-        # perform inference over Region B
-        if b_width == 0:
-            pass
-        else:
-            x_start = input_width - tile_dim
-            for row in range(n_row):
-                y_start = row * tile_dim
-                tile = input_dataset.ReadAsArray(xoff=int(x_start),
-                                                 yoff=int(y_start),
-                                                 xsize=tile_dim,
-                                                 ysize=tile_dim)
-
-                # pad values over right edge, reshape tile to correct format
-                tile = pad(tile,
-                           pad_width=b_tile_pads,
-                           mode='reflect')
-                tile = tile[:, :, -tile_dim:]
-                tile = expand_dims(moveaxis(tile,
-                                            source=0,
-                                            destination=2),
-                                   axis=0)
-                pred_tile = squeeze(model.predict(tile))
-
-                # assign label via thresholding or argmax
-                if output_depth == 1:
-                    pred_tile = where(pred_tile > 0.5, 1, 0)
-                else:
-                    pred_tile = argmax(pred_tile, axis=-1).astype(uint8)
-
-                pred_tile = pred_tile[:, 0:b_width]
-
-                # store the predictions into the initialized array
-                pred[y_start:(y_start + tile_dim), (input_width - b_width):input_width] = pred_tile
-
-        # perform inference over Region C
-        if c_height == 0:
-            pass
-        else:
-            y_start = input_height - tile_dim
-            for col in range(n_col):
-                x_start = col * tile_dim
-                tile = input_dataset.ReadAsArray(xoff=int(x_start),
-                                                 yoff=int(y_start),
-                                                 xsize=tile_dim,
-                                                 ysize=tile_dim)
-
-                # pad values over the bottom edge, reshape tile to correct format
-                tile = pad(tile,
-                           pad_width=c_tile_pads,
-                           mode='reflect')
-                tile = tile[:, -tile_dim:, :]
-                tile = expand_dims(moveaxis(tile,
-                                            source=0,
-                                            destination=2),
-                                   axis=0)
-                pred_tile = squeeze(model.predict(tile))
-
-                # assign label via thresholding or argmax
-                if output_depth == 1:
-                    pred_tile = squeeze(model.predict(tile))
-                    pred_tile = where(pred_tile > 0.5, 1, 0)
-                else:
-                    pred_tile = argmax(pred_tile, axis=-1).astype(uint8)
-
-                pred_tile = pred_tile[0:c_height, :]
-
-                # store the predictions into the initialized array
-                pred[(input_height - c_height):input_height, x_start:(x_start + tile_dim)] = pred_tile
-
-        # perform inference over Region D
-        if b_width == 0 or c_height == 0:
-            pass
-        else:
-            x_start = input_width - tile_dim
-            y_start = input_height - tile_dim
+    # perform inference over Region A
+    for row in range(n_row):
+        y_start = row * tile_dim
+        for col in range(n_col):
+            x_start = col * tile_dim
             tile = input_dataset.ReadAsArray(xoff=int(x_start),
                                              yoff=int(y_start),
                                              xsize=tile_dim,
                                              ysize=tile_dim)
 
-            # pad values over the right and bottom edges, reshape to correct tile format
-            tile = pad(tile,
-                       pad_width=d_tile_pads,
-                       mode='reflect')
-            tile = tile[:, -tile_dim:, -tile_dim:]
+            # reshape to (1, height, width, channels) format for model.predict method
             tile = expand_dims(moveaxis(tile,
                                         source=0,
                                         destination=2),
@@ -207,36 +103,137 @@ def predict_raster(input_dataset: Dataset,
                 pred_tile = where(pred_tile > 0.5, 1, 0)
             else:
                 pred_tile = argmax(pred_tile, axis=-1).astype(uint8)
-            pred_tile = pred_tile[0:c_height, 0:b_width]
 
             # store the predictions into the initialized array
-            pred[(input_height - d_height):input_height, (input_width - d_width):input_width] = pred_tile
+            pred[y_start:(y_start + tile_dim), x_start:(x_start + tile_dim)] = pred_tile
 
-        # check that the output_path specifies a tif file:
-        if splitext(output_path)[1] == ".tif":
-            pass
+    # perform inference over Region B
+    if b_width == 0:
+        pass
+    else:
+        x_start = input_width - tile_dim
+        for row in range(n_row):
+            y_start = row * tile_dim
+            tile = input_dataset.ReadAsArray(xoff=int(x_start),
+                                             yoff=int(y_start),
+                                             xsize=tile_dim,
+                                             ysize=tile_dim)
+
+            # pad values over right edge, reshape tile to correct format
+            tile = pad(tile,
+                       pad_width=b_tile_pads,
+                       mode='reflect')
+            tile = tile[:, :, -tile_dim:]
+            tile = expand_dims(moveaxis(tile,
+                                        source=0,
+                                        destination=2),
+                               axis=0)
+            pred_tile = squeeze(model.predict(tile))
+
+            # assign label via thresholding or argmax
+            if output_depth == 1:
+                pred_tile = where(pred_tile > 0.5, 1, 0)
+            else:
+                pred_tile = argmax(pred_tile, axis=-1).astype(uint8)
+
+            pred_tile = pred_tile[:, 0:b_width]
+
+            # store the predictions into the initialized array
+            pred[y_start:(y_start + tile_dim), (input_width - b_width):input_width] = pred_tile
+
+    # perform inference over Region C
+    if c_height == 0:
+        pass
+    else:
+        y_start = input_height - tile_dim
+        for col in range(n_col):
+            x_start = col * tile_dim
+            tile = input_dataset.ReadAsArray(xoff=int(x_start),
+                                             yoff=int(y_start),
+                                             xsize=tile_dim,
+                                             ysize=tile_dim)
+
+            # pad values over the bottom edge, reshape tile to correct format
+            tile = pad(tile,
+                       pad_width=c_tile_pads,
+                       mode='reflect')
+            tile = tile[:, -tile_dim:, :]
+            tile = expand_dims(moveaxis(tile,
+                                        source=0,
+                                        destination=2),
+                               axis=0)
+            pred_tile = squeeze(model.predict(tile))
+
+            # assign label via thresholding or argmax
+            if output_depth == 1:
+                pred_tile = squeeze(model.predict(tile))
+                pred_tile = where(pred_tile > 0.5, 1, 0)
+            else:
+                pred_tile = argmax(pred_tile, axis=-1).astype(uint8)
+
+            pred_tile = pred_tile[0:c_height, :]
+
+            # store the predictions into the initialized array
+            pred[(input_height - c_height):input_height, x_start:(x_start + tile_dim)] = pred_tile
+
+    # perform inference over Region D
+    if b_width == 0 or c_height == 0:
+        pass
+    else:
+        x_start = input_width - tile_dim
+        y_start = input_height - tile_dim
+        tile = input_dataset.ReadAsArray(xoff=int(x_start),
+                                         yoff=int(y_start),
+                                         xsize=tile_dim,
+                                         ysize=tile_dim)
+
+        # pad values over the right and bottom edges, reshape to correct tile format
+        tile = pad(tile,
+                   pad_width=d_tile_pads,
+                   mode='reflect')
+        tile = tile[:, -tile_dim:, -tile_dim:]
+        tile = expand_dims(moveaxis(tile,
+                                    source=0,
+                                    destination=2),
+                           axis=0)
+        pred_tile = squeeze(model.predict(tile))
+
+        # assign label via thresholding or argmax
+        if output_depth == 1:
+            pred_tile = squeeze(model.predict(tile))
+            pred_tile = where(pred_tile > 0.5, 1, 0)
         else:
-            raise Exception("Please specify a tif file in the output_path argument.")
+            pred_tile = argmax(pred_tile, axis=-1).astype(uint8)
+        pred_tile = pred_tile[0:c_height, 0:b_width]
 
-        # set up the metadata and write the predicted dataset
-        driver = GetDriverByName("GTiff")
-        driver.Register()
-        output_dataset = driver.Create(output_path,
-                                       xsize=input_width,
-                                       ysize=input_height,
-                                       bands=1,
-                                       eType=input_dataset.GetRasterBand(1).DataType)
+        # store the predictions into the initialized array
+        pred[(input_height - d_height):input_height, (input_width - d_width):input_width] = pred_tile
 
-        output_dataset.SetGeoTransform(input_dataset.GetGeoTransform())
-        output_dataset.SetProjection(input_dataset.GetProjection())
-        output_band = output_dataset.GetRasterBand(1)
-        output_band.WriteArray(pred)
-        output_band.SetNoDataValue(0)
-        output_band.FlushCache()
+    # check that the output_path specifies a tif file:
+    if splitext(output_path)[1] == ".tif":
+        pass
+    else:
+        raise Exception("Please specify a tif file in the output_path argument.")
 
-        # without the following lines, the arrays won't actually be written into the tif file
-        output_band = None
-        output_dataset = None
+    # set up the metadata and write the predicted dataset
+    driver = GetDriverByName("GTiff")
+    driver.Register()
+    output_dataset = driver.Create(output_path,
+                                   xsize=input_width,
+                                   ysize=input_height,
+                                   bands=1,
+                                   eType=input_dataset.GetRasterBand(1).DataType)
+
+    output_dataset.SetGeoTransform(input_dataset.GetGeoTransform())
+    output_dataset.SetProjection(input_dataset.GetProjection())
+    output_band = output_dataset.GetRasterBand(1)
+    output_band.WriteArray(pred)
+    output_band.SetNoDataValue(0)
+    output_band.FlushCache()
+
+    # without the following lines, the arrays won't actually be written into the tif file
+    output_band = None
+    output_dataset = None
 
 def rasterize_polygon_layer(rgb: Dataset,
                             polygons: DataSource,
@@ -320,7 +317,8 @@ def tile_raster_pair(rgb: Dataset,
                      imagery_tiles_dir: str,
                      label_tiles_dir: str,
                      filename: str,
-                     label_proportion: float=0.2):
+                     stride_length: int = 0,
+                     label_proportion: float = 0.2):
     """Generates tiles for training data from an rgb/label pair.
 
     Args:
@@ -330,6 +328,7 @@ def tile_raster_pair(rgb: Dataset,
         imagery_tiles_dir: directory in which to write the RGB tiles;
         label_tiles_dir: directory in which to write the label tiles;
         filename: the name to use for the tile pairs;
+        stride_length: the number of pixels of overlap between tiles (horizontal and vertical);
         label_proportion: the minimum proportion which any single class must have per tile.
 
     Returns:
@@ -351,13 +350,17 @@ def tile_raster_pair(rgb: Dataset,
     # get the number of pixels per tile
     n_pixels = tile_dimension ** 2
 
+    # fix stride length if default value is used
+    if stride_length == 0:
+        stride_length = tile_dimension
+
     # get the number of tiles in each dimension
-    nx_tiles = int(rgb.RasterXSize / tile_dimension)
-    ny_tiles = int(rgb.RasterYSize / tile_dimension)
+    nx_tiles = int(rgb.RasterXSize / stride_length)
+    ny_tiles = int(rgb.RasterYSize / stride_length)
 
     # get the pixel values for the start of each tile
-    x_steps = arange(nx_tiles) * tile_dimension
-    y_steps = arange(ny_tiles) * tile_dimension
+    x_steps = arange(nx_tiles) * stride_length
+    y_steps = arange(ny_tiles) * stride_length
 
     # set a counter to name tiles
     counter = 0
