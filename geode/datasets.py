@@ -288,6 +288,10 @@ class SegmentationDataset:
         # check whether polygon data has been set and matches the names in the source imagery
         self.check_polygons()
 
+        # create a label directory if necessary
+        if not (isdir(self.labels_path)):
+            mkdir(self.labels_path)
+
         # loop through the shapefiles in the polygons directory
         for filename in self.data_names:
             fname = splitext(filename)[0]
