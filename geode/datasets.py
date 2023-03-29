@@ -21,14 +21,10 @@ class SegmentationDataset:
                  n_channels: int = 3,
                  tile_dimension: int = 0,
                  tiles_path: str = "",
-                 dataset_description: str = "",
-                 channel_description: str = "",
                  no_data_value: int = 0,
                  burn_attribute: str = "bool"):
 
         self.n_channels = n_channels
-        self.channel_description: str = channel_description
-        self.dataset_description: str = dataset_description
         self.label_proportion: float = 0.0
         self.labels_path = labels_path
         self.source_metadata: dict = {}
