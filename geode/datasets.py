@@ -237,11 +237,11 @@ class SegmentationDataset:
         # loop through each source/label raster pair to generate tiles
         for filename in self.source_image_names:
             # open rgb and raster label imagery
-            rgb = gdal.Open(join(self.source_path, filename))
+            image = gdal.Open(join(self.source_path, filename))
             labels = gdal.Open(join(self.labels_path, filename))
 
             # pull out tiles from imagery
-            tile_raster_pair(rgb=rgb,
+            tile_raster_pair(image=image,
                              labels=labels,
                              tile_dimension=self.tile_dimension,
                              stride_length=stride_length,

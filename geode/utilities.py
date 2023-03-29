@@ -214,7 +214,7 @@ def predict_raster(input_dataset: Dataset,
         raise Exception("Please specify a tif file in the output_path argument.")
 
     # set up the metadata and write the predicted dataset
-    driver = GetDriverByName("GTiff")
+    driver = GetDriverByName('GTiff')
     driver.Register()
     output_dataset = driver.Create(output_path,
                                    xsize=input_width,
@@ -277,7 +277,7 @@ def rasterize_polygon_layer(rgb: Dataset,
     RasterizeLayer(output_raster,
                    [1],
                    polygon_layer,
-                   options=["ATTRIBUTE={a}".format(a=burn_attribute)])
+                   options=['ATTRIBUTE={a}'.format(a=burn_attribute)])
 
     # close connection and write to disk
     output_raster = None
@@ -286,7 +286,7 @@ def rasterize_polygon_layer(rgb: Dataset,
 def resample_dataset(input_path: str,
                      output_path: str,
                      target_resolutions: tuple,
-                     resample_algorithm: str = "cubic") -> None:
+                     resample_algorithm: str = 'cubic') -> None:
     """A wrapper of gdal.Warp, but with human-readable argument values.
 
     Args:
@@ -309,7 +309,7 @@ def resample_dataset(input_path: str,
     resampled = None
 
 
-def tile_raster_pair(rgb: Dataset,
+def tile_raster_pair(image: Dataset,
                      labels: Dataset,
                      tile_dimension: int,
                      imagery_tiles_dir: str,
@@ -317,10 +317,10 @@ def tile_raster_pair(rgb: Dataset,
                      filename: str,
                      stride_length: int = 0,
                      label_proportion: float = 0.2):
-    """Generates tiles for training data from an rgb/label pair.
+    """Generates tiles for training data from an image/label pair.
 
     Args:
-        rgb: the dataset of RGB imagery;
+        image: the dataset of RGB imagery;
         labels: the dataset of single-band labeled imagery;
         tile_dimension: the pixel length of the square tiles;
         imagery_tiles_dir: directory in which to write the RGB tiles;
@@ -336,8 +336,8 @@ def tile_raster_pair(rgb: Dataset,
         Exception: if dimensions of rgb and labels do not match."""
 
     # boolean values for whether dimensions are equal
-    bool_x = rgb.RasterXSize == labels.RasterXSize
-    bool_y = rgb.RasterYSize == labels.RasterYSize
+    bool_x = image.RasterXSize == labels.RasterXSize
+    bool_y = image.RasterYSize == labels.RasterYSize
 
     # test to ensure input imagery have the same dimensions
     if bool_x or bool_y:
@@ -353,8 +353,8 @@ def tile_raster_pair(rgb: Dataset,
         stride_length = tile_dimension
 
     # get the number of tiles in each dimension
-    nx_tiles = int(rgb.RasterXSize / stride_length)
-    ny_tiles = int(rgb.RasterYSize / stride_length)
+    nx_tiles = int(image.RasterXSize / stride_length)
+    ny_tiles = int(image.RasterYSize / stride_length)
 
     # get the pixel values for the start of each tile
     x_steps = arange(nx_tiles) * stride_length
@@ -370,10 +370,10 @@ def tile_raster_pair(rgb: Dataset,
             y_start = y_steps[j]
 
             # read the RGB tile
-            rgb_tile = rgb.ReadAsArray(xoff=float(x_start),
-                                       yoff=float(y_start),
-                                       xsize=tile_dimension,
-                                       ysize=tile_dimension)
+            rgb_tile = image.ReadAsArray(xoff=float(x_start),
+                                         yoff=float(y_start),
+                                         xsize=tile_dimension,
+                                         ysize=tile_dimension)
 
             # sum across the channel (GDAL arrays are channel-first)
             band_sum = sum(rgb_tile, axis=0)
@@ -395,13 +395,13 @@ def tile_raster_pair(rgb: Dataset,
                 continue
 
             # set the output paths
-            tile_name = splitext(filename)[0] + "_{counter}.tif".format(counter=counter)
+            tile_name = splitext(filename)[0] + '_{counter}.tif'.format(counter=counter)
             imagery_tile_path = join(imagery_tiles_dir, tile_name)
             label_tile_path = join(label_tiles_dir, tile_name)
 
             # create the output imagery tile
             rgb_tile = Translate(destName=imagery_tile_path,
-                                 srcDS=rgb,
+                                 srcDS=image,
                                  srcWin=[x_start, y_start, tile_dimension, tile_dimension])
 
             # create the output label tile
@@ -436,13 +436,13 @@ def write_raster(dataset: Dataset,
     """
 
     # check that the output_path specifies a tif file:
-    if output_path[-3:] == "tif":
+    if output_path[-3:] == 'tif':
         pass
     else:
         raise Exception("Please specify a tif file in the output_path argument.")
 
     # set up the metadata and write the predicted dataset
-    driver = GetDriverByName("GTiff")
+    driver = GetDriverByName('GTiff')
     driver.Register()
     output_dataset = driver.Create(output_path,
                                    xsize=dataset.RasterXSize,
