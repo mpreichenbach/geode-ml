@@ -16,8 +16,6 @@ class SegmentationModel:
 
     def __init__(self):
 
-        super().__init__()
-
         self.test_metrics = {}
         self.test_filenames = []
         self.model = None

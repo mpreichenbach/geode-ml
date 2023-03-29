@@ -175,7 +175,7 @@ class SegmentationDataset:
         """Compiles information about the source imagery, and stores it in the source_metadata attribute.
 
         Returns:
-            None
+            A dictionary of metadata for each source image.
         """
 
         # check whether the source imagery exists
@@ -256,6 +256,28 @@ class SegmentationDataset:
 
             if verbose:
                 print(filename + " tiles generated.")
+
+    def get_tile_quantities(self) -> dict:
+        """Computes the number of tiles generated from each source image.
+
+        Returns:
+            A dictionary containing the number of tiles for each source image."""
+
+        # check that the tiles have been generated properly
+        self.check_tiles()
+
+        # define the dictionary to hold tile quantities
+        quantity_dict = {}
+
+        # get a list of names of all tiles
+        tile_filenames = listdir(join(self.tiles_path, 'imagery'))
+
+        # loop through source image names
+        for fname in self.data_names:
+            tile_subset = [x for x in tile_filenames if fname in x]
+            quantity_dict[fname] = len(tile_subset)
+
+        return quantity_dict
 
     def rasterize_polygon_layers(self, verbose=True) -> None:
         """Generates label rasters from the polygon data, with dimensions matching the source imagery.
