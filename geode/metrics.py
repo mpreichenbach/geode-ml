@@ -3,54 +3,164 @@
 import numpy as np
 from numpy import ndarray
 
-def convert_and_flatten(y_true, y_pred, pos_label):
+
+def convert_and_flatten(y_true: ndarray,
+                        y_pred: ndarray,
+                        pos_label: int) -> tuple:
+    """Converts input arrays to binary labels, and flattens them.
+
+    Args:
+        y_true: an array of true labels;
+        y_pred: an array of predicted labels;
+        pos_label: the label in y_true and y_pred to change to 1.
+
+    Returns:
+        A tuple containing the converted and flattened arrays.
+    """
+
     y_true = np.where(y_true.flatten() == pos_label, 1, 0)
     y_pred = np.where(y_pred.flatten() == pos_label, 1, 0)
 
     return y_true, y_pred
 
-def true_positives(y_true, y_pred, pos_label):
+
+def true_positives(y_true: ndarray,
+                   y_pred: ndarray,
+                   pos_label: int) -> int:
+    """Computes the true positives between the ground-truth and predicted array.
+
+    Args:
+        y_true: an array of true labels;
+        y_pred: an array of predicted labels;
+        pos_label: the label in y_true and y_pred to change to 1.
+
+    Returns:
+        The number of true positives between the arrays.
+    """
+
     y_true, y_pred = convert_and_flatten(y_true, y_pred, pos_label)
 
-    return np.sum(y_true * y_pred)
+    return int(np.sum(y_true * y_pred))
 
-def false_positives(y_true, y_pred, pos_label):
+
+def false_positives(y_true: ndarray,
+                    y_pred: ndarray,
+                    pos_label: int) -> int:
+    """Computes the false positives between the ground-truth and predicted array.
+
+    Args:
+        y_true: an array of true labels;
+        y_pred: an array of predicted labels;
+        pos_label: the label in y_true and y_pred to change to 1.
+
+    Returns:
+        The number of false positives between the arrays.
+    """
+
     y_true, y_pred = convert_and_flatten(y_true, y_pred, pos_label)
 
-    return np.sum(np.where(y_pred - y_true == 1, 1, 0))
+    return int(np.sum(np.where(y_pred - y_true == 1, 1, 0)))
 
-def false_negatives(y_true, y_pred, pos_label):
+
+def false_negatives(y_true: ndarray,
+                    y_pred: ndarray,
+                    pos_label: int) -> int:
+    """Computes the false negatives between the ground-truth and predicted array.
+
+    Args:
+        y_true: an array of true labels;
+        y_pred: an array of predicted labels;
+        pos_label: the label in y_true and y_pred to change to 1.
+
+    Returns:
+        The number of false negatives between the arrays.
+    """
     y_true, y_pred = convert_and_flatten(y_true, y_pred, pos_label)
 
-    return np.sum(np.where(y_true - y_pred == 1, 1, 0))
+    return int(np.sum(np.where(y_true - y_pred == 1, 1, 0)))
 
-# these functions are way faster than their sklearn counterparts
 
-def f1(y_true, y_pred, pos_label):
+def f1(y_true: ndarray,
+       y_pred: ndarray,
+       pos_label: int) -> float:
+    """Computes the F1 (aka, dice) score between the ground-truth and predicted array.
+
+    Args:
+        y_true: an array of true labels;
+        y_pred: an array of predicted labels;
+        pos_label: the label in y_true and y_pred to change to 1.
+
+    Returns:
+        The F1 score.
+    """
+
     tp = true_positives(y_true, y_pred, pos_label)
     fp = false_positives(y_true, y_pred, pos_label)
     fn = false_negatives(y_true, y_pred, pos_label)
 
     return tp / (tp + 0.5 * (fp + fn))
 
-def jaccard(y_true, y_pred, pos_label):
+
+def jaccard(y_true: ndarray,
+            y_pred: ndarray,
+            pos_label: int) -> float:
+    """Computes the Jaccard (aka, intersection-over-union) score between the ground-truth and predicted array.
+
+    Args:
+        y_true: an array of true labels;
+        y_pred: an array of predicted labels;
+        pos_label: the label in y_true and y_pred to change to 1.
+
+    Returns:
+        The Jaccard score.
+    """
+
     tp = true_positives(y_true, y_pred, pos_label)
     fp = false_positives(y_true, y_pred, pos_label)
     fn = false_negatives(y_true, y_pred, pos_label)
 
     return tp / (tp + fp + fn)
 
-def precision(y_true, y_pred, pos_label):
+
+def precision(y_true: ndarray,
+              y_pred: ndarray,
+              pos_label: int) -> float:
+    """Computes the precision score between the ground-truth and predicted array.
+
+    Args:
+        y_true: an array of true labels;
+        y_pred: an array of predicted labels;
+        pos_label: the label in y_true and y_pred to change to 1.
+
+    Returns:
+        The precision score.
+    """
+
     tp = true_positives(y_true, y_pred, pos_label)
     fp = false_positives(y_true, y_pred, pos_label)
 
     return tp / (tp + fp)
 
-def recall(y_true, y_pred, pos_label):
+
+def recall(y_true: ndarray,
+           y_pred: ndarray,
+           pos_label: int) -> float:
+    """Computes the recall score between the ground-truth and predicted array.
+
+    Args:
+        y_true: an array of true labels;
+        y_pred: an array of predicted labels;
+        pos_label: the label in y_true and y_pred to change to 1.
+
+    Returns:
+        The recall score.
+    """
+
     tp = true_positives(y_true, y_pred, pos_label)
     fn = false_negatives(y_true, y_pred, pos_label)
 
     return tp / (tp + fn)
+
 
 def total_accuracy(y_true: ndarray,
                    y_pred: ndarray) -> float:

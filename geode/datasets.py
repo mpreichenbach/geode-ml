@@ -22,7 +22,7 @@ class SegmentationDataset:
                  tile_dimension: int = 0,
                  tiles_path: str = "",
                  no_data_value: int = 0,
-                 burn_attribute: str = "bool"):
+                 burn_attribute: str = 'bool'):
 
         self.n_channels = n_channels
         self.label_proportion: float = 0.0
@@ -80,7 +80,7 @@ class SegmentationDataset:
         else:
             for directory in listdir(self.polygons_path):
                 filenames = listdir(join(self.polygons_path, directory))
-                shapefiles = [x for x in filenames if splitext(x)[1] == ".shp"]
+                shapefiles = [x for x in filenames if splitext(x)[1] == '.shp']
                 if len(shapefiles) != 1:
                     raise Exception("The polygons data directories must have exactly one shapefile.")
 
@@ -146,14 +146,14 @@ class SegmentationDataset:
 
         # check if imagery/labels subdirectories exist
         tiles_path_contents = listdir(self.tiles_path)
-        if "imagery" in tiles_path_contents and "labels" in tiles_path_contents:
+        if 'imagery' in tiles_path_contents and 'labels' in tiles_path_contents:
             pass
         else:
             raise Exception("The tiles_path does not have either imagery or labels subdirectories.")
 
         # get the image and label tile names
-        image_tiles = listdir(join(self.tiles_path, "imagery"))
-        label_tiles = listdir(join(self.tiles_path, "labels"))
+        image_tiles = listdir(join(self.tiles_path, 'imagery'))
+        label_tiles = listdir(join(self.tiles_path, 'labels'))
 
         # check if there are equal numbers of imagery/label tiles
         if len(image_tiles) == len(label_tiles):
@@ -187,13 +187,13 @@ class SegmentationDataset:
             x_dim = dst.RasterXSize
             y_dim = dst.RasterYSize
 
-            metadata_dict["band_counts"] = dst.RasterCount
-            metadata_dict["dimensions"] = (x_dim, y_dim)
-            metadata_dict["resolution"] = (gt[1], gt[5])
-            metadata_dict["raster_extent"] = abs(x_dim * gt[1] * y_dim * gt[5])
+            metadata_dict['band_counts'] = dst.RasterCount
+            metadata_dict['dimensions'] = (x_dim, y_dim)
+            metadata_dict['resolution'] = (gt[1], gt[5])
+            metadata_dict['raster_extent'] = abs(x_dim * gt[1] * y_dim * gt[5])
 
-            if "metre" in dst.GetProjection():
-                metadata_dict["units"] = "metre"
+            if 'metre' in dst.GetProjection():
+                metadata_dict['units'] = 'metre'
             else:
                 raise (Exception("The raster " + filename + " may not be in metres."))
 
@@ -225,8 +225,8 @@ class SegmentationDataset:
         self.label_proportion = label_proportion
 
         # create sub-directories for the tiles
-        imagery_tiles_dir = join(self.tiles_path, "imagery")
-        label_tiles_dir = join(self.tiles_path, "labels")
+        imagery_tiles_dir = join(self.tiles_path, 'imagery')
+        label_tiles_dir = join(self.tiles_path, 'labels')
         if not (isdir(self.tiles_path)):
             mkdir(self.tiles_path)
         if not isdir(imagery_tiles_dir):
@@ -292,11 +292,11 @@ class SegmentationDataset:
         for filename in self.data_names:
             fname = splitext(filename)[0]
             # open the source/polygon pair
-            rgb = gdal.Open(join(self.source_path, filename + ".tif"))
-            polygons = ogr.Open(join(self.polygons_path, fname, fname + ".shp"))
+            rgb = gdal.Open(join(self.source_path, filename + '.tif'))
+            polygons = ogr.Open(join(self.polygons_path, fname, fname + '.shp'))
 
             # set the output path
-            output_path = join(self.labels_path, filename + ".tif")
+            output_path = join(self.labels_path, filename + '.tif')
 
             # rasterize the polygon layer
 
@@ -311,7 +311,7 @@ class SegmentationDataset:
 
     def resample_source_imagery(self, output_path: str,
                                 target_resolutions: tuple,
-                                resample_algorithm: str = "cubic",
+                                resample_algorithm: str = 'cubic',
                                 replace_source_dataset: bool = True,
                                 verbose=True) -> None:
         """Resamples the source imagery to the target resolution.
@@ -418,14 +418,14 @@ class SegmentationDataset:
 
         # define a generator object which will then define a tf.data.Dataset
         def generator():
-            filenames = listdir(join(self.tiles_path, "imagery"))
+            filenames = listdir(join(self.tiles_path, 'imagery'))
             if augment:
                 shuffle(filenames)
             train_ids = range(len(filenames))
             while True:
                 for ID in train_ids:
-                    img = gdal.Open(join(self.tiles_path, "imagery", filenames[ID])).ReadAsArray()
-                    lbl = gdal.Open(join(self.tiles_path, "labels", filenames[ID])).ReadAsArray()
+                    img = gdal.Open(join(self.tiles_path, 'imagery', filenames[ID])).ReadAsArray()
+                    lbl = gdal.Open(join(self.tiles_path, 'labels', filenames[ID])).ReadAsArray()
 
                     # reshape img to channels-last
                     img = moveaxis(img, 0, -1)

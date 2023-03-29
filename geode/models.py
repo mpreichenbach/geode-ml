@@ -58,7 +58,7 @@ class SegmentationModel:
             labels = unique(y_true)
 
             # compute total accuracy
-            metrics_dict["total_accuracy"] = total_accuracy(y_true, y_pred)
+            metrics_dict['total_accuracy'] = total_accuracy(y_true, y_pred)
 
             # compute F1 and Jaccard scores for each label
             f1_scores = []
@@ -73,8 +73,8 @@ class SegmentationModel:
                                               pos_label=label))
 
             # add F1 and Jaccard scores to the metrics dictionary
-            metrics_dict["F1"] = f1_scores
-            metrics_dict["Jaccard"] = jaccard_scores
+            metrics_dict['F1'] = f1_scores
+            metrics_dict['Jaccard'] = jaccard_scores
 
             fname_metrics[fname] = metrics_dict
 
@@ -294,7 +294,8 @@ class VGG19Unet(SegmentationModel):
             learning_rate: the starting learning rate for the Adam optimizer.
 
         Returns:
-            None"""
+            None
+        """
 
         # compile the model
         self.model.compile(loss=loss,
@@ -423,7 +424,8 @@ class Unet(SegmentationModel):
             learning_rate: the starting learning rate for the Adam optimizer.
 
         Returns:
-            None"""
+            None
+        """
 
         # compile the model
         self.model.compile(loss=loss,

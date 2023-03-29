@@ -1,33 +1,33 @@
 # pyproject.toml
 
 [build-system]
-requires = ["setuptools>=61.0.0", "wheel"]
-build-backend = "setuptools.build_meta"
+requires = ['setuptools>=61.0.0', 'wheel']
+build-backend = 'setuptools.build_meta'
 
 [project]
-name = "geode-ml"
-version = "2.5.2"
+name = 'geode-ml'
+version = '2.6.0'
 description = "Classes and methods to help with the creation of geospatial training datasets and deep-learning models."
-readme = "README.md"
-license = {file="LICENSE"}
+readme = 'README.md'
+license = {file='LICENSE'}
 authors = [
-    {name = "Matt Reichenbach", email="matthew.reichenbach@gmail.com"},
+    {name = 'Matt Reichenbach', email='matthew.reichenbach@gmail.com'},
 ]
-requires-python = ">=3.7"
+requires-python = '>=3.7'
 classifiers = [
-    "License :: OSI Approved :: MIT License",
-    "Programming Language :: Python",
-    "Programming Language :: Python :: 3",
-    "Operating System :: OS Independent",
+    'License :: OSI Approved :: MIT License',
+    'Programming Language :: Python',
+    'Programming Language :: Python :: 3',
+    'Operating System :: OS Independent',
 ]
 
-keywords = ["deep-learning", "training", "dataset", "geospatial"]
+keywords = ['deep-learning', 'training', 'dataset', 'geospatial']
 dependencies = [
-    "gdal >= 3.4",
-    "numpy",
+    'gdal >= 3.4',
+    'numpy',
     "tensorflow-gpu >= 2.7; platform_system=='Windows'",
     "tensorflow >= 2.7; platform_system=='Linux'"
 ]
 
 [project.urls]
-"Homepage" = "https://github.com/mpreichenbach/geode-ml"
+'Homepage' = 'https://github.com/mpreichenbach/geode-ml'
