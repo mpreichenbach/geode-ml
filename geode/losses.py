@@ -1,6 +1,6 @@
 # losses.py
 
-from numpy import ndarray
+from numpy import asarray, ndarray
 import tensorflow as tf
 from tensorflow.keras import backend as K
 
@@ -11,13 +11,25 @@ def dice_loss(y_true: ndarray,
     """Computes the dice-loss between one-hot encoded arrays, then returns a score between [0, 1].
 
     Args:
-        y_true: tensor of ground-truth values of size (batch, height, width, n_classes;
+        y_true: tensor of ground-truth values of size (batch, height, width, n_classes);
         y_pred: tensor of model predictions of size (batch, height, width, n_classes);
         smooth: a value to avoid division by zero (among other things).
 
     Returns:
         The dice-loss score.
+
+    Raises:
+        ValueError: if smooth is less than zero.
     """
+
+    # attempt to coerce arguments to the correct type
+    y_true = asarray(y_true)
+    y_pred = asarray(y_pred)
+    smooth = float(smooth)
+
+    # check for the correct float range
+    if smooth < 0:
+        raise ValueError("Argument smooth must be greater than or equal to zero.")
 
     y_true = K.cast(y_true, dtype=tf.float32)
     y_pred = K.cast(y_pred, dtype=tf.float32)
@@ -43,7 +55,19 @@ def iou_loss(y_true: ndarray,
 
     Returns:
         The iou-loss score.
+
+    Raises:
+        ValueError: if smooth is less than zero.
     """
+
+    # attempt to coerce arguments to the correct type
+    y_true = asarray(y_true)
+    y_pred = asarray(y_pred)
+    smooth = float(smooth)
+
+    # check for the correct float range
+    if smooth < 0:
+        raise ValueError("Argument smooth must be greater than or equal to zero.")
 
     y_true = K.cast(y_true, dtype=tf.float32)
     y_pred = K.cast(y_pred, dtype=tf.float32)
@@ -69,7 +93,19 @@ def log_iou_loss(y_true: ndarray,
 
     Returns:
         The log-iou-loss score.
+
+    Raises:
+        ValueError: if smooth is less than zero.
     """
+
+    # attempt to coerce arguments to the correct type
+    y_true = asarray(y_true)
+    y_pred = asarray(y_pred)
+    smooth = float(smooth)
+
+    # check for the correct float range
+    if smooth < 0:
+        raise ValueError("Argument smooth must be greater than or equal to zero.")
 
     y_true = K.cast(y_true, dtype=tf.float32)
     y_pred = K.cast(y_pred, dtype=tf.float32)
