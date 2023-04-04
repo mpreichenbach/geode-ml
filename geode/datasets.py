@@ -54,9 +54,7 @@ class SegmentationDataset:
         self.tile_dimension = int(tile_dimension)
 
         # check argument values
-        if source_path == '':
-            raise ValueError("The argument source_path cannot be the empty string.")
-        else:
+        if source_path != '':
             self.source_image_names = listdir(source_path)
             self.data_names = [splitext(x)[0] for x in self.source_image_names]
             if len(self.source_image_names) == 0:
