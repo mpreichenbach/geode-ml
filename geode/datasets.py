@@ -1,7 +1,7 @@
 # datasets.py
 
 from geode.utilities import convert_labels_to_one_hots, rasterize_polygon_layer, resample_dataset, tile_raster_pair
-from numpy import abs, expand_dims, moveaxis
+from numpy import expand_dims, moveaxis
 from numpy.testing import assert_allclose
 from numpy.random import shuffle
 from os import listdir, mkdir
@@ -11,51 +11,57 @@ import tensorflow as tf
 
 
 class SegmentationDataset:
-    """Defines a semantic segmentation dataset to be used in deep-learning models. Has methods to resample source
-     imagery, to rasterize polygon layers, to generate training tiles, and to generate an iterator object
-     for model training."""
 
-    def __init__(self, source_path: str = "",
-                 polygons_path: str = "",
-                 labels_path: str = "",
+    def __init__(self, source_path: str = '',
+                 polygons_path: str = '',
+                 labels_path: str = '',
+                 tiles_path: str = '',
                  n_channels: int = 3,
-                 tile_dimension: int = 0,
-                 tiles_path: str = "",
-                 no_data_value: int = 0,
-                 burn_attribute: str = 'bool'):
+                 tile_dimension: int = 0):
 
-        self.n_channels = n_channels
-        self.label_proportion: float = 0.0
-        self.labels_path = labels_path
-        self.source_metadata: dict = {}
-        self.source_path = source_path
-        self.polygons_path = polygons_path
-        self.tile_dimension = tile_dimension
-        self.tiles_path = tiles_path
-        self.no_data_value = no_data_value
-        self.burn_attribute = burn_attribute
+        """Defines a semantic segmentation dataset to be used in deep-learning models. Has methods to resample source
+         imagery, to rasterize polygon layers, to generate training tiles, and to generate an iterator object
+         for model training.
 
-        if source_path == "":
-            pass
-        else:
-            self.source_image_names = listdir(source_path)
-            self.data_names = [splitext(x)[0] for x in self.source_image_names]
-
-    def check_source(self) -> None:
-        """Checks whether the source imagery has been set, and is nonempty.
+         Args:
+            source_path: the directory containing the source imagery;
+            polygons_path: the directory containing polygons;
+            labels_path: the directory containing the label rasters;
+            n_channels: the number of channels in the source imagery;
+            tile_dimension:
 
         Returns:
             None
 
         Raises:
-            Exception: if source_path has not been set;
-            Exception: if source_path has been set, but is empty.
+            ValueError: if source_path is the empty string;
+            Exception: if the source_path is empty;
+            ValueError: if n_channels is negative;
+            ValueError: if tile_dimension is negative.
         """
 
-        if self.source_path == "":
-            raise Exception("The source_path has not been set.")
-        elif len(listdir(self.source_path)) == 0:
-            raise Exception("The source_path is empty.")
+        # attempt to coerce arguments to correct type, and set attributes
+        self.source_path = str(source_path)
+        self.polygons_path = str(polygons_path)
+        self.labels_path = str(labels_path)
+        self.tiles_path = str(tiles_path)
+        self.n_channels = int(n_channels)
+        self.tile_dimension = int(tile_dimension)
+
+        # check argument values
+        if source_path == '':
+            raise ValueError("The argument source_path cannot be the empty string.")
+        else:
+            self.source_image_names = listdir(source_path)
+            self.data_names = [splitext(x)[0] for x in self.source_image_names]
+            if len(self.source_image_names) == 0:
+                raise Exception('The source_path is empty.')
+
+        if self.n_channels <= 0:
+            raise ValueError("The argument n_channels must be a positive integer.")
+
+        if self.tile_dimension <= 0:
+            raise ValueError("The argument tile_dimension must be a postiive integer.")
 
     def check_polygons(self) -> None:
         """Checks whether the polygon data has been set, and matches the names of the source imagery.
@@ -64,15 +70,14 @@ class SegmentationDataset:
             None
 
         Raises:
-            Exception: if polygons_path has not been set;
+            ValueError: if polygons_path has not been set;
             Exception: if polygons_path is empty;
             Exception: if polygon data folder names do not match source imagery names;
             Exception: if a polygon data folder does not contain a shapefile.
         """
 
         if self.polygons_path == "":
-            raise Exception("The polygons_path has not been set; run either the get_label_polygons "
-                            "or set_label_polygons first.")
+            raise ValueError("The attribute polygons_path cannot be the empty string.")
         elif len(listdir(self.polygons_path)) == 0:
             raise Exception("The polygons_path is empty.")
         elif set([splitext(x)[0] for x in listdir(self.source_path)]) != set(listdir(self.polygons_path)):
@@ -91,7 +96,7 @@ class SegmentationDataset:
             None
 
         Raises:
-            Exception: if labels_path has not been set;
+            ValueError: if labels_path has not been set;
             Exception: if labels_path is empty;
             Exception: if label raster names do not match source imagery names;
             Exception: if source/raster width does not match for a particular pair;
@@ -100,8 +105,7 @@ class SegmentationDataset:
         """
 
         if self.labels_path == "":
-            raise Exception("The labels_path has not been set; run either the set_label_imagery "
-                            "or rasterize_polygons first.")
+            raise ValueError("The attribute labels_path cannot be the empty string.")
         elif len(listdir(self.labels_path)) == 0:
             raise Exception("The labels_path is empty.")
         elif set(listdir(self.source_path)) != set(listdir(self.labels_path)):
@@ -127,7 +131,7 @@ class SegmentationDataset:
             None
 
         Raises:
-            Exception: if tiles_path has not been specified;
+            ValueError: if tiles_path has not been specified;
             Exception: if tiles_path is not a directory;
             Exception: if tiles_path doesn't have imagery/labels directories;
             Exception: if imagery/label directories have different numbers of files.
@@ -136,7 +140,7 @@ class SegmentationDataset:
 
         # check whether tiles_path has been specified
         if self.tiles_path == "":
-            raise Exception("The tiles_path attribute has not been specified.")
+            raise ValueError("The tiles_path attribute cannot be the empty string.")
 
         # check whether tiles_path is a directory
         if isdir(self.tiles_path):
@@ -167,62 +171,43 @@ class SegmentationDataset:
         else:
             raise Exception("The imagery and label tiles do not have the same filenames.")
 
-    def get_source_metadata(self) -> dict:
-        """Compiles information about the source imagery, and stores it in the source_metadata attribute.
-
-        Returns:
-            A dictionary of metadata for each source image.
-        """
-
-        # check whether the source imagery exists
-        self.check_source()
-
-        # loop through the source imagery and extract relevant metadata
-        for filename in self.source_image_names:
-            dst = gdal.Open(join(self.source_path, filename))
-
-            # set metadata fields from the gdal.Dataset object
-            metadata_dict = {}
-            gt = dst.GetGeoTransform()
-            x_dim = dst.RasterXSize
-            y_dim = dst.RasterYSize
-
-            metadata_dict['band_counts'] = dst.RasterCount
-            metadata_dict['dimensions'] = (x_dim, y_dim)
-            metadata_dict['resolution'] = (gt[1], gt[5])
-            metadata_dict['raster_extent'] = abs(x_dim * gt[1] * y_dim * gt[5])
-
-            if 'metre' in dst.GetProjection():
-                metadata_dict['units'] = 'metre'
-            else:
-                raise (Exception("The raster " + filename + " may not be in metres."))
-
-            self.source_metadata[filename] = metadata_dict
-
-            # close the gdal.Dataset object
-            dst = None
-
-        return self.source_metadata
-
     def generate_tiles(self, stride_length: int = 0,
                        label_proportion: float = 0.2,
                        verbose: bool = True) -> None:
         """Generates image tiles from the source and label imagery for use in model training.
 
         Args:
+            tile_dimension: the desired length and width of tiles;
             stride_length: the number of pixels of overlap between tiles (default of 0 means tile_dimension);
             label_proportion: the minimum proportion which any single class must have per tile;
             verbose: whether to print progress to the console.
 
         Returns:
             None
+
+        Raises:
+            ValueError: if argument tile_dimension is a negative integer;
+            ValueError: if argument stride_length is a negative integer;
+            ValueError: if argument label_proportion is not between 0.0 and 1.0, inclusive;
+            TypeError: if argument verbose is not boolean.
         """
+
+        # attempt to coerce arguments to the correct type
+        stride_length = int(stride_length)
+        label_proportion = float(label_proportion)
+
+        # check for correct ranges
+        if stride_length < 0:
+            raise ValueError('Argument stride_length must be a non-negative integer.')
+
+        if label_proportion < 0.0 or label_proportion > 1.0:
+            raise ValueError('Argument label_proportion must be between 0.0 and 1.0, inclusive.')
+
+        if not isinstance(verbose, bool):
+            raise TypeError('Argument verbose must be either True or False.')
 
         # check whether the label rasters are in good shape
         self.check_labels()
-
-        # set an attribute for the label proportion in the generated tiles
-        self.label_proportion = label_proportion
 
         # create sub-directories for the tiles
         imagery_tiles_dir = join(self.tiles_path, 'imagery')
@@ -245,7 +230,7 @@ class SegmentationDataset:
                              labels=labels,
                              tile_dimension=self.tile_dimension,
                              stride_length=stride_length,
-                             label_proportion=self.label_proportion,
+                             label_proportion=label_proportion,
                              imagery_tiles_dir=imagery_tiles_dir,
                              label_tiles_dir=label_tiles_dir,
                              filename=filename)
@@ -275,15 +260,26 @@ class SegmentationDataset:
 
         return quantity_dict
 
-    def rasterize_polygon_layers(self, verbose=True) -> None:
+    def rasterize_polygon_layers(self, burn_feature: str = 'bool',
+                                 no_data_value: int = 0,
+                                 verbose: bool = True) -> None:
         """Generates label rasters from the polygon data, with dimensions matching the source imagery.
 
         Args:
+            burn_feature: the feature from the attribute table to write;
+            no_data_value: the value to burn into NoData pixels;
             verbose: whether to print progress to the console.
 
         Returns:
             None
+
+        Raises:
+            TypeError: if verbose argument is not boolean.
         """
+
+        # check for correct argument type
+        if not isinstance(verbose, bool):
+            raise TypeError('Argument verbose must be either True or False.')
 
         # check whether polygon data has been set and matches the names in the source imagery
         self.check_polygons()
@@ -307,8 +303,8 @@ class SegmentationDataset:
             rasterize_polygon_layer(rgb=rgb,
                                     polygons=polygons,
                                     output_path=output_path,
-                                    burn_attribute=self.burn_attribute,
-                                    no_data_value=self.no_data_value)
+                                    burn_attribute=burn_feature,
+                                    no_data_value=no_data_value)
 
             if verbose:
                 print(filename + " rasterized.")
@@ -317,7 +313,7 @@ class SegmentationDataset:
                                 target_resolutions: tuple,
                                 resample_algorithm: str = 'cubic',
                                 replace_source_dataset: bool = True,
-                                verbose=True) -> None:
+                                verbose: bool = True) -> None:
         """Resamples the source imagery to the target resolution.
 
         Args:
@@ -329,7 +325,23 @@ class SegmentationDataset:
 
         Returns:
             None
+
+        Raises:
+            TypeError: if argument replace_source_dataset is not boolean;
+            TypeError: if argument verbose is not boolean.
         """
+
+        # attempt to coerce arguments to the correct type
+        output_path = str(output_path)
+        target_resolutions = tuple(target_resolutions)
+        resample_algorithm = str(resample_algorithm)
+
+        # check for correct types
+        if not isinstance(replace_source_dataset, bool):
+            raise TypeError('Argument replace_source_dataset must be either True or False.')
+
+        if not isinstance(verbose, bool):
+            raise TypeError('Argument verbose must be either True or False.')
 
         # create directory if it doesn't already exist
         if not isdir(output_path):
@@ -348,7 +360,6 @@ class SegmentationDataset:
         # change dataset's source imagery if requested
         if replace_source_dataset:
             self.source_path = output_path
-            self.get_source_metadata()
 
     def set_label_imagery(self, labels_path: str) -> None:
         """Defines the label imagery to use for other methods, if not already created by rasterize_polygons.
@@ -360,10 +371,13 @@ class SegmentationDataset:
             None
         """
 
+        # attempt to coerce argument to the correct type
+        labels_path = str(labels_path)
+
         self.labels_path = labels_path
         self.check_labels()
 
-    def set_label_polygons(self, polygons_path) -> None:
+    def set_label_polygons(self, polygons_path: str) -> None:
         """Defines the polygon data, and provides a manual alternative to the get_label_polygons method; e.g., this
         method is useful when one wants to use polygon data from a source other than OpenStreetMaps.
 
@@ -374,40 +388,54 @@ class SegmentationDataset:
             None
         """
 
+        # attempt to coerce argument to the correct type
+        polygons_path = str(polygons_path)
+
         self.polygons_path = polygons_path
         self.check_polygons()
 
     def tf_dataset(self, n_classes: int = 2,
-                   augmentation: bool = True,
                    batch_size: int = 1,
+                   augmentation: bool = True,
                    perform_one_hot: bool = False) -> tf.data.Dataset:
 
         """Creates a tf.data.Dataset object which generates batches from the tile folders.
 
         Args:
             n_classes: the number of label classes;
-            augmentation: whether to perform data augmentation (random flips);
             batch_size: the size of the batch to generate;
+            augmentation: whether to perform data augmentation (random flips);
             perform_one_hot: whether to do a one-hot encoding on the label tiles.
 
         Returns:
             A tf.data.Dataset object.
 
         Raises:
-            Exception: if tile_dimension attribute has not been set.
+            ValueError: if argument n_classes is not a positive integer;
+            ValueError: if argument batch_size is not a positive integer;
+            TypeError: if argument augmentation is not boolean;
+            TypeError: if argument perform_one_hot is not boolean.
         """
 
-        # check that tile_dimension attribute has been set
-        if self.tile_dimension == 0:
-            raise Exception("The tile_generator attribute must be greater than 0.")
+        # attempt to coerce arguments to the correct type
+        n_classes = int(n_classes)
+        batch_size = int(batch_size)
 
-        # create a local function to pass image/label pairs to the preprocessing model
+        # check for the correct types and ranges
+        if n_classes <= 0:
+            raise ValueError('Argument n_classes must be a positive integer.')
+
+        if batch_size <= 0:
+            raise ValueError('Argument batch_size must be a positive integer.')
+
+        if not isinstance(augmentation, bool):
+            raise TypeError('Argument augmentation must be either True or False.')
+
+        if not isinstance(perform_one_hot, bool):
+            raise TypeError('Argument perform_one_hot must be either True or False.')
+
         @tf.function
         def augment(img, lbl):
-            # prep_block = prep_model([img, lbl])
-            #
-            # return prep_block[:, :, :, 0:self.n_channels], prep_block[:, :, :, -1]
-
             # perform a random vertical flip
             img, lbl = tf.cond(tf.greater(tf.random.uniform(()), 0.5),
                                lambda: (tf.image.flip_left_right(img), tf.image.flip_left_right(lbl)),

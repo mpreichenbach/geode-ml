@@ -12,7 +12,7 @@ def convert_labels_to_one_hots(label_array: ndarray,
     """Converts integer labels with shape (n_images, height, width) to one-hot encodings.
 
     Args:
-        label_array: a numpy array of integer-valued labels (from 0 to n_classes - 1);;
+        label_array: a numpy array of integer-valued labels (from 0 to n_classes - 1);
         n_classes: the number of classes in the dataset.
 
     Returns
