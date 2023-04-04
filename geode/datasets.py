@@ -11,6 +11,18 @@ import tensorflow as tf
 
 
 class SegmentationDataset:
+    """A class for defining and manipulating semantic segmentation datasets.
+
+    Attributes:
+        source_path: the directory containing source imagery;
+        polygons_path: the directory containing subdirectories of polygon shapefiles;
+        labels_path: the directory to contain label rasters;
+        tiles_path: the directory to contain the imagery/labels subdirectory pairs for tiles;
+        n_channels: the number of channels in the source_imagery;
+        tile_dimension: the length/width of tiles;
+        source_image_names: the filenames of source imagery;
+        data_names: the source imagery names without filename extensions;
+    """
 
     def __init__(self, source_path: str = '',
                  polygons_path: str = '',
@@ -18,20 +30,13 @@ class SegmentationDataset:
                  tiles_path: str = '',
                  n_channels: int = 3,
                  tile_dimension: int = 0):
-
-        """Defines a semantic segmentation dataset to be used in deep-learning models. Has methods to resample source
-         imagery, to rasterize polygon layers, to generate training tiles, and to generate an iterator object
-         for model training.
-
-         Args:
+        """
+        Args:
             source_path: the directory containing the source imagery;
             polygons_path: the directory containing polygons;
             labels_path: the directory containing the label rasters;
             n_channels: the number of channels in the source imagery;
-            tile_dimension:
-
-        Returns:
-            None
+            tile_dimension: the length/width of tiles;
 
         Raises:
             ValueError: if source_path is the empty string;
@@ -177,8 +182,7 @@ class SegmentationDataset:
         """Generates image tiles from the source and label imagery for use in model training.
 
         Args:
-            tile_dimension: the desired length and width of tiles;
-            stride_length: the number of pixels of overlap between tiles (default of 0 means tile_dimension);
+            stride_length: the number of pixels of overlap between tiles;
             label_proportion: the minimum proportion which any single class must have per tile;
             verbose: whether to print progress to the console.
 
@@ -186,7 +190,6 @@ class SegmentationDataset:
             None
 
         Raises:
-            ValueError: if argument tile_dimension is a negative integer;
             ValueError: if argument stride_length is a negative integer;
             ValueError: if argument label_proportion is not between 0.0 and 1.0, inclusive;
             TypeError: if argument verbose is not boolean.
