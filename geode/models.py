@@ -13,6 +13,7 @@ from tensorflow.keras.layers.experimental.preprocessing import Rescaling
 
 
 class SegmentationModel:
+    """A class for defining and testing semantic segmentation models."""
 
     def __init__(self):
 

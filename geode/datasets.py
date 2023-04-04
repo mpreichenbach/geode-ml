@@ -11,6 +11,7 @@ import tensorflow as tf
 
 
 class SegmentationDataset:
+
     """A class for defining and manipulating semantic segmentation datasets.
 
     Attributes:
@@ -30,8 +31,8 @@ class SegmentationDataset:
                  tiles_path: str = '',
                  n_channels: int = 3,
                  tile_dimension: int = 0):
-        """
-        Args:
+
+        """Args:
             source_path: the directory containing the source imagery;
             polygons_path: the directory containing polygons;
             labels_path: the directory containing the label rasters;
@@ -67,6 +68,7 @@ class SegmentationDataset:
             raise ValueError("The argument tile_dimension must be a postiive integer.")
 
     def check_polygons(self) -> None:
+
         """Checks whether the polygon data has been set, and matches the names of the source imagery.
 
         Returns:
@@ -93,6 +95,7 @@ class SegmentationDataset:
                     raise Exception("The polygons data directories must have exactly one shapefile.")
 
     def check_labels(self) -> None:
+
         """Checks whether the label rasters have been generated, and match the names of the source imagery.
 
         Returns:
@@ -128,6 +131,7 @@ class SegmentationDataset:
                     raise Exception("Raster y-dimensions do not match for " + filename + " pair.")
 
     def check_tiles(self) -> None:
+
         """Checks whether the tiles have been correctly generated.
 
         Returns:
@@ -177,6 +181,7 @@ class SegmentationDataset:
     def generate_tiles(self, stride_length: int = 0,
                        label_proportion: float = 0.2,
                        verbose: bool = True) -> None:
+
         """Generates image tiles from the source and label imagery for use in model training.
 
         Args:
@@ -240,6 +245,7 @@ class SegmentationDataset:
                 print(filename + " tiles generated.")
 
     def get_tile_quantities(self) -> dict:
+
         """Computes the number of tiles generated from each source image.
 
         Returns:
@@ -264,6 +270,7 @@ class SegmentationDataset:
     def rasterize_polygon_layers(self, burn_feature: str = 'bool',
                                  no_data_value: int = 0,
                                  verbose: bool = True) -> None:
+
         """Generates label rasters from the polygon data, with dimensions matching the source imagery.
 
         Args:
@@ -315,6 +322,7 @@ class SegmentationDataset:
                                 resample_algorithm: str = 'cubic',
                                 replace_source_dataset: bool = True,
                                 verbose: bool = True) -> None:
+
         """Resamples the source imagery to the target resolution.
 
         Args:
@@ -363,6 +371,7 @@ class SegmentationDataset:
             self.source_path = output_path
 
     def set_label_imagery(self, labels_path: str) -> None:
+
         """Defines the label imagery to use for other methods, if not already created by rasterize_polygons.
 
         Args:
@@ -379,6 +388,7 @@ class SegmentationDataset:
         self.check_labels()
 
     def set_label_polygons(self, polygons_path: str) -> None:
+        
         """Defines the polygon data, and provides a manual alternative to the get_label_polygons method; e.g., this
         method is useful when one wants to use polygon data from a source other than OpenStreetMaps.
 
