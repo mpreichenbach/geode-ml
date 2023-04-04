@@ -22,7 +22,7 @@ def dice_loss(y_true: ndarray,
         ValueError: if smooth is less than zero.
     """
 
-    # attempt to coerce arguments to the correct type
+    # coerce arguments to the correct type
     y_true = asarray(y_true)
     y_pred = asarray(y_pred)
     smooth = float(smooth)
@@ -60,7 +60,7 @@ def iou_loss(y_true: ndarray,
         ValueError: if smooth is less than zero.
     """
 
-    # attempt to coerce arguments to the correct type
+    # coerce arguments to the correct type
     y_true = asarray(y_true)
     y_pred = asarray(y_pred)
     smooth = float(smooth)
@@ -98,7 +98,7 @@ def log_iou_loss(y_true: ndarray,
         ValueError: if smooth is less than zero.
     """
 
-    # attempt to coerce arguments to the correct type
+    # coerce arguments to the correct type
     y_true = asarray(y_true)
     y_pred = asarray(y_pred)
     smooth = float(smooth)

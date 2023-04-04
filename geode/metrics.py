@@ -19,7 +19,7 @@ def convert_and_flatten(y_true: ndarray,
         A tuple containing the converted and flattened arrays.
     """
 
-    # attempt to coerce arguments to the correct type
+    # coerce arguments to the correct type
     y_true = asarray(y_true)
     y_pred = asarray(y_pred)
     pos_label = int(pos_label)
@@ -45,7 +45,7 @@ def true_positives(y_true: ndarray,
         The number of true positives between the arrays.
     """
 
-    # attempt to coerce arguments to the correct type
+    # coerce arguments to the correct type
     y_true = asarray(y_true)
     y_pred = asarray(y_pred)
     pos_label = int(pos_label)
@@ -70,7 +70,7 @@ def false_positives(y_true: ndarray,
         The number of false positives between the arrays.
     """
 
-    # attempt to coerce arguments to the correct type
+    # coerce arguments to the correct type
     y_true = asarray(y_true)
     y_pred = asarray(y_pred)
     pos_label = int(pos_label)
@@ -95,7 +95,7 @@ def false_negatives(y_true: ndarray,
         The number of false negatives between the arrays.
     """
 
-    # attempt to coerce arguments to the correct type
+    # coerce arguments to the correct type
     y_true = asarray(y_true)
     y_pred = asarray(y_pred)
     pos_label = int(pos_label)
@@ -120,7 +120,7 @@ def f1(y_true: ndarray,
         The F1 score.
     """
 
-    # attempt to coerce arguments to the correct type
+    # coerce arguments to the correct type
     y_true = asarray(y_true)
     y_pred = asarray(y_pred)
     pos_label = int(pos_label)
@@ -147,7 +147,7 @@ def jaccard(y_true: ndarray,
         The Jaccard score.
     """
 
-    # attempt to coerce arguments to the correct type
+    # coerce arguments to the correct type
     y_true = asarray(y_true)
     y_pred = asarray(y_pred)
     pos_label = int(pos_label)
@@ -174,7 +174,7 @@ def precision(y_true: ndarray,
         The precision score.
     """
 
-    # attempt to coerce arguments to the correct type
+    # coerce arguments to the correct type
     y_true = asarray(y_true)
     y_pred = asarray(y_pred)
     pos_label = int(pos_label)
@@ -200,7 +200,7 @@ def recall(y_true: ndarray,
         The recall score.
     """
 
-    # attempt to coerce arguments to the correct type
+    # coerce arguments to the correct type
     y_true = asarray(y_true)
     y_pred = asarray(y_pred)
     pos_label = int(pos_label)
@@ -226,7 +226,7 @@ def total_accuracy(y_true: ndarray,
     Raises:
         Exception: if the two provided arrays do not have the same shape."""
 
-    # attempt to coerce arguments to the correct type
+    # coerce arguments to the correct type
     y_true = asarray(y_true)
     y_pred = asarray(y_pred)
 

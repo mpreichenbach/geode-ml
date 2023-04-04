@@ -13,7 +13,12 @@ from tensorflow.keras.layers.experimental.preprocessing import Rescaling
 
 
 class SegmentationModel:
-    """A class for defining and testing semantic segmentation models."""
+    """A class for defining and testing semantic segmentation models.
+
+    Attributes:
+        test_metrics: the dictionary which stores computed metrics;
+        test_filenames: the files which make up the test set;
+        model: the model object."""
 
     def __init__(self):
 
@@ -38,6 +43,11 @@ class SegmentationModel:
         Raises:
             Exception: if there are no predicted rasters at test_predictions_path.
         """
+
+        # coerce arguments to correct type
+        test_labels_path = str(test_labels_path)
+        test_predictions_path = str(test_predictions_path)
+        output_path = str(output_path)
 
         # check that there are predictions
         if len(listdir(test_predictions_path)) == 0:
@@ -92,7 +102,8 @@ class SegmentationModel:
     def predict_test_imagery(self, test_imagery_path: str = None,
                              test_labels_path: str = None,
                              test_predictions_path: str = None,
-                             verbose=True) -> None:
+                             verbose: bool = True) -> None:
+
         """Predicts the test imagery in the supplied path.
 
         Args:
@@ -106,12 +117,23 @@ class SegmentationModel:
 
         Raises:
             Exception: if any of the input paths are None;
-            Exception: if no test files exist at the supplied paths.
+            TypeError: if verbose is not boolean;
+            Exception: if no test files exist at the supplied paths;
+            Exception: if the imagery and labels have different filenames/
         """
 
         # check that input paths are supplied
         if test_imagery_path is None or test_labels_path is None or test_predictions_path is None:
             raise Exception("One of the required path arguments has not been supplied.")
+
+        # coerce arguments to correct type
+        test_imagery_path = str(test_imagery_path)
+        test_labels_path = str(test_labels_path)
+        test_predictions_path = str(test_predictions_path)
+
+        # check for the correct type
+        if not isinstance(verbose, bool):
+            raise TypeError("Argument verbose must be boolean.")
 
         # check that test imagery exists and has correctly named labels
         if set(listdir(test_imagery_path)) == set(listdir(test_labels_path)):
@@ -155,18 +177,42 @@ class VGG19Unet(SegmentationModel):
                  rescale_factor: float = 1 / 255,
                  include_residual: bool = False):
 
+        """Instantiates the Unet architecture, with mirrored VGG19 architectures for the up- and down-sampling paths.
+
+        Attributes:
+            n_channels: the number of channels in the input imagery;
+            n_classes: the number of classes to predict;
+            n_filters: the number of convolutional filters in the first layer;
+            dropout_rate: the proportion of nodes to turn off for each inference step during training.
+
+        Raises:
+            ValueError: if n_channels is less than 1;
+            ValueError: if n_classes is less than 2;
+            ValueError: if n_filters is less than 1;
+            ValueError: if dropout_rate is not between 0.0 and 1.0;
+            TypeError:  if include_residual is not boolean.
+        """
+
         # initialize the superclass
         super().__init__()
 
-        # define attributes
-        self.n_channels = n_channels
-        self.n_classes = n_classes
-        self.n_filters = n_filters
-        self.dropout_rate = dropout_rate
+        # coerce arguments to correct types and define attributes
+        self.n_channels = int(n_channels)
+        self.n_classes = int(n_classes)
+        self.n_filters = int(n_filters)
+        self.dropout_rate = float(dropout_rate)
 
-        # ensure that n_classes >= 2
+        # perform type-checking
+        if self.n_channels < 1:
+            raise ValueError("The argument n_channels must be greater than or equal to one.")
         if self.n_classes < 2:
-            raise Exception("Number of classes must at least 2.")
+            raise ValueError("The argument n_classes must be greater than or equal to 2.")
+        if self.n_filters < 1:
+            raise ValueError("The argument n_filters must be at least 1.")
+        if self.dropout_rate < 0.0 or self.dropout_rate > 1.0:
+            raise ValueError("The argument dropout_rate must be between 0.0 and 1.0, inclusive.")
+        if not isinstance(include_residual, bool):
+            raise TypeError("The argument include_residual must be boolean.")
 
         # define the layers and model
         include_dropout = (self.dropout_rate > 0.0)
@@ -298,6 +344,9 @@ class VGG19Unet(SegmentationModel):
             None
         """
 
+        # coerce arguments to correct type
+        learning_rate = float(learning_rate)
+
         # compile the model
         self.model.compile(loss=loss,
                            optimizer=tf.keras.optimizers.Adam(learning_rate=learning_rate))
@@ -312,18 +361,42 @@ class Unet(SegmentationModel):
                  rescale_factor: float = 1 / 255,
                  include_residual: bool = False):
 
+        """Instantiates the Unet architecture, with filters doubling in each level.
+
+        Attributes:
+            n_channels: the number of channels in the input imagery;
+            n_classes: the number of classes to predict;
+            n_filters: the number of convolutional filters in the first layer;
+            dropout_rate: the proportion of nodes to turn off for each inference step during training.
+
+        Raises:
+            ValueError: if n_channels is less than 1;
+            ValueError: if n_classes is less than 2;
+            ValueError: if n_filters is less than 1;
+            ValueError: if dropout_rate is not between 0.0 and 1.0;
+            TypeError:  if include_residual is not boolean.
+        """
+
         # initialize the superclass
         super().__init__()
 
-        # define attributes
-        self.n_channels = n_channels
-        self.n_classes = n_classes
-        self.n_filters = n_filters
-        self.dropout_rate = dropout_rate
+        # coerce arguments to correct types and define attributes
+        self.n_channels = int(n_channels)
+        self.n_classes = int(n_classes)
+        self.n_filters = int(n_filters)
+        self.dropout_rate = float(dropout_rate)
 
-        # ensure that n_classes >= 2
+        # perform type-checking
+        if self.n_channels < 1:
+            raise ValueError("The argument n_channels must be greater than or equal to one.")
         if self.n_classes < 2:
-            raise Exception("Number of classes must at least 2.")
+            raise ValueError("The argument n_classes must be greater than or equal to 2.")
+        if self.n_filters < 1:
+            raise ValueError("The argument n_filters must be at least 1.")
+        if self.dropout_rate < 0.0 or self.dropout_rate > 1.0:
+            raise ValueError("The argument dropout_rate must be between 0.0 and 1.0, inclusive.")
+        if not isinstance(include_residual, bool):
+            raise TypeError("The argument include_residual must be boolean.")
 
         include_dropout = (self.dropout_rate > 0.0)
 

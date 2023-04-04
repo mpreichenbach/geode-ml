@@ -12,19 +12,6 @@ import tensorflow as tf
 
 class SegmentationDataset:
 
-    """A class for defining and manipulating semantic segmentation datasets.
-
-    Attributes:
-        source_path: the directory containing source imagery;
-        polygons_path: the directory containing subdirectories of polygon shapefiles;
-        labels_path: the directory to contain label rasters;
-        tiles_path: the directory to contain the imagery/labels subdirectory pairs for tiles;
-        n_channels: the number of channels in the source_imagery;
-        tile_dimension: the length/width of tiles;
-        source_image_names: the filenames of source imagery;
-        data_names: the source imagery names without filename extensions;
-    """
-
     def __init__(self, source_path: str = '',
                  polygons_path: str = '',
                  labels_path: str = '',
@@ -32,11 +19,14 @@ class SegmentationDataset:
                  n_channels: int = 3,
                  tile_dimension: int = 0):
 
-        """Args:
-            source_path: the directory containing the source imagery;
-            polygons_path: the directory containing polygons;
-            labels_path: the directory containing the label rasters;
-            n_channels: the number of channels in the source imagery;
+        """A class for defining and manipulating semantic segmentation datasets.
+
+        Attributes:
+            source_path: the directory containing source imagery;
+            polygons_path: the directory containing subdirectories of polygon shapefiles;
+            labels_path: the directory to contain label rasters;
+            tiles_path: the directory to contain the imagery/labels subdirectory pairs for tiles;
+            n_channels: the number of channels in the source_imagery;
             tile_dimension: the length/width of tiles;
 
         Raises:
@@ -388,7 +378,7 @@ class SegmentationDataset:
         self.check_labels()
 
     def set_label_polygons(self, polygons_path: str) -> None:
-        
+
         """Defines the polygon data, and provides a manual alternative to the get_label_polygons method; e.g., this
         method is useful when one wants to use polygon data from a source other than OpenStreetMaps.
 
