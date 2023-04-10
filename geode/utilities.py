@@ -233,6 +233,7 @@ def predict_raster(input_dataset: Dataset,
     output_band = None
     output_dataset = None
 
+
 def rasterize_polygon_layer(rgb: Dataset,
                             polygons: DataSource,
                             output_path: str,

@@ -2,7 +2,7 @@
 
 from geode.metrics import f1, jaccard, total_accuracy
 from geode.utilities import predict_raster
-from numpy import unique
+from numpy import mean, unique
 from os import listdir, makedirs
 from os.path import isdir, join
 from osgeo.gdal import Open
@@ -23,11 +23,11 @@ class SegmentationModel:
     def __init__(self):
 
         self.test_metrics = {}
-        self.test_filenames = []
         self.model = None
 
     def compute_metrics(self, test_labels_path: str = None,
                         test_predictions_path: str = None,
+                        data_names: list = None,
                         output_path: str = None) -> dict:
 
         """Computes various metrics on a test dataset; paired images and labels should have identical filenames.
@@ -35,69 +35,88 @@ class SegmentationModel:
         Args:
             test_labels_path: the location of test labels;
             test_predictions_path: the location at which to save model predictions;
+            data_names: the names of imagery (usually regions);
             output_path: the path to write a text-file of metrics.
 
         Returns:
              A dictionary containing various calculated metrics for each test raster.
 
         Raises:
-            Exception: if there are no predicted rasters at test_predictions_path.
+            Exception: if there are no predicted rasters at test_predictions_path;
+            Exception: if no data_names argument is supplied.
         """
 
         # coerce arguments to correct type
         test_labels_path = str(test_labels_path)
         test_predictions_path = str(test_predictions_path)
+        data_names = list(data_names)
         output_path = str(output_path)
 
         # check that there are predictions
         if len(listdir(test_predictions_path)) == 0:
             raise Exception("No predicted imagery has been generated.")
 
+        # check that data_names have been supplied
+        if len(data_names) == 0:
+            raise Exception("data_names argument must be supplied.")
+
         # create dictionary to hold metric dictionaries
-        fname_metrics = {}
+        dname_metrics = {}
+
+        # get the test_filenames:
+        filenames = listdir(test_labels_path)
 
         # loop through the test imagery
-        for fname in self.test_filenames:
+        for dname in data_names:
+            # get the relevant subset
+            sub_filenames = [x for x in filenames if dname in x]
+
             # create metrics dictionary
             metrics_dict = {}
 
-            # open the relevant datasets
-            y_true = Open(join(test_labels_path, fname)).ReadAsArray()
-            y_pred = Open(join(test_predictions_path, fname)).ReadAsArray()
-
-            # get the label values
-            labels = unique(y_true)
-
-            # compute total accuracy
-            metrics_dict['total_accuracy'] = total_accuracy(y_true, y_pred)
-
-            # compute F1 and Jaccard scores for each label
+            # create lists for each metric
+            acc_scores = []
             f1_scores = []
             jaccard_scores = []
-            for label in labels:
-                f1_scores.append(f1(y_true=y_true,
-                                    y_pred=y_pred,
-                                    pos_label=label))
 
-                jaccard_scores.append(jaccard(y_true=y_true,
-                                              y_pred=y_pred,
-                                              pos_label=label))
+            # loop through the test subset
+            for fname in sub_filenames:
+                # open the relevant datasets
+                y_true = Open(join(test_labels_path, fname)).ReadAsArray()
+                y_pred = Open(join(test_predictions_path, fname)).ReadAsArray()
+
+                # get the label values
+                labels = unique(y_true)
+
+                # compute total accuracy
+                acc_scores.append(total_accuracy(y_true, y_pred))
+
+                # compute F1 and Jaccard scores for each label
+                for label in labels:
+                    f1_scores.append(f1(y_true=y_true,
+                                        y_pred=y_pred,
+                                        pos_label=label))
+
+                    jaccard_scores.append(jaccard(y_true=y_true,
+                                                  y_pred=y_pred,
+                                                  pos_label=label))
 
             # add F1 and Jaccard scores to the metrics dictionary
-            metrics_dict['F1'] = f1_scores
-            metrics_dict['Jaccard'] = jaccard_scores
+            metrics_dict['Acc'] = mean(acc_scores)
+            metrics_dict['F1'] = mean(f1_scores)
+            metrics_dict['Jaccard'] = mean(jaccard_scores)
 
-            fname_metrics[fname] = metrics_dict
+            dname_metrics[dname] = metrics_dict
 
         # write the dictionary to a file
         if output_path is not None:
             with open(output_path, 'w') as f:
-                for key, value in fname_metrics.items():
+                for key, value in dname_metrics.items():
                     f.write('%s: %s' % (key, value))
 
-        self.test_metrics = fname_metrics
+        self.test_metrics = dname_metrics
 
-        return fname_metrics
+        return dname_metrics
 
     def predict_test_imagery(self, test_imagery_path: str = None,
                              test_labels_path: str = None,
