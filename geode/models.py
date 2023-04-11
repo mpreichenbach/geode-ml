@@ -16,26 +16,46 @@ class SegmentationModel:
     """A class for defining and testing semantic segmentation models.
 
     Attributes:
+        test_imagery_path: the directory containing the test imagery;
+        test_labels_path: the directory containing the true labels;
+        test_predictions_path: the directory containing the predicted labels;
+        data_names: a list of imagery names (usually regions before tiling was applied);
         test_metrics: the dictionary which stores computed metrics;
-        test_filenames: the files which make up the test set;
+        test_imagery_names: the files which make up the test imagery set;
         model: the model object."""
 
-    def __init__(self):
+    def __init__(self, test_imagery_path: str = None,
+                 test_labels_path: str = None,
+                 test_predictions_path: str = None,
+                 data_names: list = None):
 
+        self.test_imagery_path = str(test_imagery_path)
+        self.test_labels_path = str(test_labels_path)
+        self.test_predictions_path = str(test_predictions_path)
+        self.data_names = str(data_names)
         self.test_metrics = {}
         self.model = None
 
-    def compute_metrics(self, test_labels_path: str = None,
-                        test_predictions_path: str = None,
-                        data_names: list = None,
-                        output_path: str = None) -> dict:
+        if test_imagery_path is not None:
+            self.test_imagery_names = listdir(test_imagery_path)
+
+        if len(self.test_imagery_names) == 0:
+            raise Exception("No test imagery has been supplied.")
+
+        if test_labels_path is not None:
+            self.test_labels_name = listdir(test_labels_path)
+
+        if len(self.test_imagery_names) != len(self.test_imagery_names):
+            raise Exception("There are a different number of test imagery and label files.")
+
+        if set(self.test_imagery_names) != set(self.test_labels_name):
+            raise Exception("Test imagery and label file names do not match.")
+
+    def compute_metrics(self, output_path: str = None) -> dict:
 
         """Computes various metrics on a test dataset; paired images and labels should have identical filenames.
 
         Args:
-            test_labels_path: the location of test labels;
-            test_predictions_path: the location at which to save model predictions;
-            data_names: the names of imagery (usually regions);
             output_path: the path to write a text-file of metrics.
 
         Returns:
@@ -43,31 +63,23 @@ class SegmentationModel:
 
         Raises:
             Exception: if there are no predicted rasters at test_predictions_path;
-            Exception: if no data_names argument is supplied.
         """
 
         # coerce arguments to correct type
-        test_labels_path = str(test_labels_path)
-        test_predictions_path = str(test_predictions_path)
-        data_names = list(data_names)
         output_path = str(output_path)
 
         # check that there are predictions
-        if len(listdir(test_predictions_path)) == 0:
+        if len(listdir(self.test_predictions_path)) == 0:
             raise Exception("No predicted imagery has been generated.")
-
-        # check that data_names have been supplied
-        if len(data_names) == 0:
-            raise Exception("data_names argument must be supplied.")
 
         # create dictionary to hold metric dictionaries
         dname_metrics = {}
 
         # get the test_filenames:
-        filenames = listdir(test_labels_path)
+        filenames = listdir(self.test_labels_path)
 
         # loop through the test imagery
-        for dname in data_names:
+        for dname in self.data_names:
             # get the relevant subset
             sub_filenames = [x for x in filenames if dname in x]
 
@@ -82,8 +94,8 @@ class SegmentationModel:
             # loop through the test subset
             for fname in sub_filenames:
                 # open the relevant datasets
-                y_true = Open(join(test_labels_path, fname)).ReadAsArray()
-                y_pred = Open(join(test_predictions_path, fname)).ReadAsArray()
+                y_true = Open(join(self.test_labels_path, fname)).ReadAsArray()
+                y_pred = Open(join(self.test_predictions_path, fname)).ReadAsArray()
 
                 # get the label values
                 labels = unique(y_true)
@@ -118,66 +130,40 @@ class SegmentationModel:
 
         return dname_metrics
 
-    def predict_test_imagery(self, test_imagery_path: str = None,
-                             test_labels_path: str = None,
-                             test_predictions_path: str = None,
-                             verbose: bool = True) -> None:
+    def predict_test_imagery(self, verbose: bool = True) -> None:
 
         """Predicts the test imagery in the supplied path.
 
         Args:
-            test_imagery_path: the location of input test imagery;
-            test_labels_path: the location of test labels;
-            test_predictions_path: the location at which to save model predictions;
             verbose: whether to print an update for each file when inference is completed.
 
         Returns:
             None
 
         Raises:
-            Exception: if any of the input paths are None;
             TypeError: if verbose is not boolean;
-            Exception: if no test files exist at the supplied paths;
-            Exception: if the imagery and labels have different filenames/
         """
-
-        # check that input paths are supplied
-        if test_imagery_path is None or test_labels_path is None or test_predictions_path is None:
-            raise Exception("One of the required path arguments has not been supplied.")
-
-        # coerce arguments to correct type
-        test_imagery_path = str(test_imagery_path)
-        test_labels_path = str(test_labels_path)
-        test_predictions_path = str(test_predictions_path)
 
         # check for the correct type
         if not isinstance(verbose, bool):
             raise TypeError("Argument verbose must be boolean.")
 
-        # check that test imagery exists and has correctly named labels
-        if set(listdir(test_imagery_path)) == set(listdir(test_labels_path)):
-            self.test_filenames = listdir(test_imagery_path)
-            if len(self.test_filenames) == 0:
-                raise Exception("There is no test imagery.")
-        else:
-            raise Exception("The test imagery and labels must have identical filenames.")
-
         # get filenames
-        filenames = listdir(test_imagery_path)
+        filenames = listdir(self.test_imagery_path)
 
         # create directory for predicted rasters
-        if isdir(test_predictions_path):
+        if isdir(self.test_predictions_path):
             pass
         else:
-            makedirs(test_predictions_path)
+            makedirs(self.test_predictions_path)
 
         # loop through the files in test_imagery_path
         for fname in filenames:
-            rgb = Open(join(test_imagery_path, fname))
+            rgb = Open(join(self.test_imagery_path, fname))
 
             predict_raster(input_dataset=rgb,
                            model=self.model,
-                           output_path=join(test_predictions_path, fname))
+                           output_path=join(self.test_predictions_path, fname))
 
             # close the input dataset
             rgb = None
