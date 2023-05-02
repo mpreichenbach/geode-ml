@@ -32,7 +32,7 @@ class SegmentationModel:
         self.test_imagery_path = str(test_imagery_path)
         self.test_labels_path = str(test_labels_path)
         self.test_predictions_path = str(test_predictions_path)
-        self.data_names = str(data_names)
+        self.data_names = list(data_names)
         self.test_metrics = {}
         self.model = None
 
@@ -97,9 +97,6 @@ class SegmentationModel:
             metrics_dict = {}
 
             # create lists for each metric
-            true_positive_scores = []
-            false_positive_scores = []
-            false_negative_scores = []
             f1_scores = []
             jaccard_scores = []
             acc_scores = []
@@ -114,18 +111,6 @@ class SegmentationModel:
                 y_pred = Open(join(self.test_predictions_path, fname)).ReadAsArray()
 
                 # compute metrics
-                true_positive_scores.append(gm.true_positives(y_true=y_true,
-                                                              y_pred=y_pred,
-                                                              pos_label=pos_label))
-
-                false_positive_scores.append(gm.false_positives(y_true=y_true,
-                                                                y_pred=y_pred,
-                                                                pos_label=pos_label))
-
-                false_negative_scores.append(gm.false_negatives(y_true=y_true,
-                                                                y_pred=y_pred,
-                                                                pos_label=pos_label))
-
                 f1_scores.append(gm.f1(y_true=y_true,
                                        y_pred=y_pred,
                                        pos_label=pos_label))
@@ -138,9 +123,6 @@ class SegmentationModel:
                                                     y_pred=y_pred))
 
             # add scores to the metrics dictionary
-            metrics_dict['true_positives'] = mean(true_positive_scores)
-            metrics_dict['false_positives'] = mean(false_positive_scores)
-            metrics_dict['false_negatives'] = mean(false_negative_scores)
             metrics_dict['f1'] = mean(f1_scores)
             metrics_dict['jaccard'] = mean(jaccard_scores)
             metrics_dict['accuracy'] = mean(acc_scores)
