@@ -102,8 +102,6 @@ class SegmentationModel:
             false_negative_scores = []
             f1_scores = []
             jaccard_scores = []
-            precision_scores = []
-            recall_scores = []
             acc_scores = []
 
             # loop through the test subset
