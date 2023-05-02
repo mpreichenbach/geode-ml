@@ -1,6 +1,6 @@
 # models.py
 
-from geode.metrics import f1, jaccard, total_accuracy
+import geode.metrics as gm
 from geode.utilities import predict_raster
 from numpy import mean, unique
 from os import listdir, makedirs
@@ -51,12 +51,17 @@ class SegmentationModel:
         if set(self.test_imagery_names) != set(self.test_labels_name):
             raise Exception("Test imagery and label file names do not match.")
 
-    def compute_metrics(self, output_path: str = None) -> dict:
+    def compute_metrics(self, output_path: str = None,
+                        pos_label: int = 1,
+                        verbose: bool = True) -> dict:
 
-        """Computes various metrics on a test dataset; paired images and labels should have identical filenames.
+        """Computes various metrics on a test dataset; paired images and labels should have identical filenames. Both
+        Jaccard and F1 metrics assume binary labeling.
 
         Args:
-            output_path: the path to write a text-file of metrics.
+            output_path: the path to write a text-file of metrics;
+            pos_label: the label for which to compute metrics;
+            verbose: whether to print progress.
 
         Returns:
              A dictionary containing various calculated metrics for each test raster.
@@ -67,6 +72,8 @@ class SegmentationModel:
 
         # coerce arguments to correct type
         output_path = str(output_path)
+        pos_label = int(pos_label)
+        verbose = bool(verbose)
 
         # check that there are predictions
         if len(listdir(self.test_predictions_path)) == 0:
@@ -80,6 +87,9 @@ class SegmentationModel:
 
         # loop through the test imagery
         for dname in self.data_names:
+            if verbose:
+                print(dname)
+
             # get the relevant subset
             sub_filenames = [x for x in filenames if dname in x]
 
@@ -87,36 +97,65 @@ class SegmentationModel:
             metrics_dict = {}
 
             # create lists for each metric
-            acc_scores = []
+            true_positive_scores = []
+            false_positive_scores = []
+            false_negative_scores = []
             f1_scores = []
             jaccard_scores = []
+            precision_scores = []
+            recall_scores = []
+            acc_scores = []
 
             # loop through the test subset
             for fname in sub_filenames:
+                if verbose:
+                    print(fname)
+
                 # open the relevant datasets
                 y_true = Open(join(self.test_labels_path, fname)).ReadAsArray()
                 y_pred = Open(join(self.test_predictions_path, fname)).ReadAsArray()
 
-                # get the label values
-                labels = unique(y_true)
+                # compute metrics
+                true_positive_scores.append(gm.true_positives(y_true=y_true,
+                                                              y_pred=y_pred,
+                                                              pos_label=pos_label))
 
-                # compute total accuracy
-                acc_scores.append(total_accuracy(y_true, y_pred))
+                false_positive_scores.append(gm.false_positives(y_true=y_true,
+                                                                y_pred=y_pred,
+                                                                pos_label=pos_label))
 
-                # compute F1 and Jaccard scores for each label
-                for label in labels:
-                    f1_scores.append(f1(y_true=y_true,
-                                        y_pred=y_pred,
-                                        pos_label=label))
+                false_negative_scores.append(gm.false_negatives(y_true=y_true,
+                                                                y_pred=y_pred,
+                                                                pos_label=pos_label))
 
-                    jaccard_scores.append(jaccard(y_true=y_true,
-                                                  y_pred=y_pred,
-                                                  pos_label=label))
+                f1_scores.append(gm.f1(y_true=y_true,
+                                       y_pred=y_pred,
+                                       pos_label=pos_label))
 
-            # add F1 and Jaccard scores to the metrics dictionary
-            metrics_dict['Acc'] = mean(acc_scores)
-            metrics_dict['F1'] = mean(f1_scores)
-            metrics_dict['Jaccard'] = mean(jaccard_scores)
+                jaccard_scores.append(gm.jaccard(y_true=y_true,
+                                                 y_pred=y_pred,
+                                                 pos_label=pos_label))
+
+                precision_scores.append(gm.precision(y_true=y_true,
+                                                     y_pred=y_pred,
+                                                     pos_label=pos_label))
+
+                recall_scores.append(gm.recall(y_true=y_true,
+                                               y_pred=y_pred,
+                                               pos_label=pos_label))
+
+                acc_scores.append(gm.total_accuracy(y_true=y_true,
+                                                    y_pred=y_pred))
+
+            # add scores to the metrics dictionary
+            metrics_dict['true_positives'] = mean(true_positive_scores)
+            metrics_dict['false_positives'] = mean(false_positive_scores)
+            metrics_dict['false_negatives'] = mean(false_negative_scores)
+            metrics_dict['f1'] = mean(f1_scores)
+            metrics_dict['jaccard'] = mean(jaccard_scores)
+            metrics_dict['precision'] = mean(precision_scores)
+            metrics_dict['recall'] = mean(recall_scores)
+            metrics_dict['accuracy'] = mean(acc_scores)
 
             dname_metrics[dname] = metrics_dict
 
@@ -130,11 +169,13 @@ class SegmentationModel:
 
         return dname_metrics
 
-    def predict_test_imagery(self, verbose: bool = True) -> None:
+    def predict_test_imagery(self, tile_dim: int = 512,
+                             verbose: bool = True) -> None:
 
         """Predicts the test imagery in the supplied path.
 
         Args:
+            tile_dim: the square dimensions of the tile to predict;
             verbose: whether to print an update for each file when inference is completed.
 
         Returns:
@@ -144,7 +185,8 @@ class SegmentationModel:
             TypeError: if verbose is not boolean;
         """
 
-        # check for the correct type
+        # check for the correct types
+        tile_dim = int(tile_dim)
         if not isinstance(verbose, bool):
             raise TypeError("Argument verbose must be boolean.")
 
@@ -163,7 +205,8 @@ class SegmentationModel:
 
             predict_raster(input_dataset=rgb,
                            model=self.model,
-                           output_path=join(self.test_predictions_path, fname))
+                           output_path=join(self.test_predictions_path, fname),
+                           tile_dim=tile_dim)
 
             # close the input dataset
             rgb = None
