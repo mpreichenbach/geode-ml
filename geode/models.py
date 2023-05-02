@@ -134,14 +134,6 @@ class SegmentationModel:
                                                  y_pred=y_pred,
                                                  pos_label=pos_label))
 
-                precision_scores.append(gm.precision(y_true=y_true,
-                                                     y_pred=y_pred,
-                                                     pos_label=pos_label))
-
-                recall_scores.append(gm.recall(y_true=y_true,
-                                               y_pred=y_pred,
-                                               pos_label=pos_label))
-
                 acc_scores.append(gm.total_accuracy(y_true=y_true,
                                                     y_pred=y_pred))
 
@@ -151,8 +143,6 @@ class SegmentationModel:
             metrics_dict['false_negatives'] = mean(false_negative_scores)
             metrics_dict['f1'] = mean(f1_scores)
             metrics_dict['jaccard'] = mean(jaccard_scores)
-            metrics_dict['precision'] = mean(precision_scores)
-            metrics_dict['recall'] = mean(recall_scores)
             metrics_dict['accuracy'] = mean(acc_scores)
 
             dname_metrics[dname] = metrics_dict
