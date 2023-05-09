@@ -17,7 +17,7 @@ class SegmentationDataset:
                  labels_path: str = '',
                  tiles_path: str = '',
                  n_channels: int = 3,
-                 tile_dimension: int = 0):
+                 tile_dimension: int = 512):
 
         """A class for defining and manipulating semantic segmentation datasets.
 
