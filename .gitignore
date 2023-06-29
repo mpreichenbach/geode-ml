@@ -4,8 +4,4 @@ geode/.idea/
 geode/__pycache__/
 .idea/
 __pycache__/
-test/
-train_model.py
-nan_test.py
 *.zip
-bin_test.py
