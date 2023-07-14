@@ -72,7 +72,6 @@ class SegmentationModel:
 
         # coerce arguments to correct type
         output_path = str(output_path)
-        pos_label = int(pos_label)
         verbose = bool(verbose)
 
         # check that there are predictions
@@ -108,8 +107,8 @@ class SegmentationModel:
                     print(fname)
 
                 # open the relevant datasets
-                y_true = Open(join(self.test_labels_path, fname)).ReadAsArray()
-                y_pred = Open(join(self.test_predictions_path, fname)).ReadAsArray()
+                y_true = Open(join(self.test_labels_path, fname)).ReadAsArray().flatten()
+                y_pred = Open(join(self.test_predictions_path, fname)).ReadAsArray().flatten()
 
                 # compute metrics
                 f1_scores.append(f1_score(y_true=y_true,
