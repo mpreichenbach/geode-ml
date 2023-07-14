@@ -121,7 +121,7 @@ class SegmentationModel:
                                                         y_pred=y_pred))
 
                 recall_scores.append(recall_score(y_true=y_true,
-                                                  y_pred=y_true))
+                                                  y_pred=y_pred))
 
             # add scores to the metrics dictionary
             metrics_dict['f1'] = mean(f1_scores)
