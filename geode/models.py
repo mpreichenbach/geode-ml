@@ -1,11 +1,11 @@
 # models.py
 
-import geode.metrics as gm
 from geode.utilities import predict_raster
-from numpy import mean, unique
+from numpy import mean
 from os import listdir, makedirs
 from os.path import isdir, join
 from osgeo.gdal import Open
+from sklearn.metrics import precision_score, recall_score, jaccard_score, f1_score
 import tensorflow as tf
 from tensorflow.keras.layers import Add, BatchNormalization, Concatenate, Conv2D, Dropout, Input, MaxPooling2D, \
     UpSampling2D
@@ -99,7 +99,8 @@ class SegmentationModel:
             # create lists for each metric
             f1_scores = []
             jaccard_scores = []
-            acc_scores = []
+            precision_scores = []
+            recall_scores = []
 
             # loop through the test subset
             for fname in sub_filenames:
@@ -111,21 +112,23 @@ class SegmentationModel:
                 y_pred = Open(join(self.test_predictions_path, fname)).ReadAsArray()
 
                 # compute metrics
-                f1_scores.append(gm.f1(y_true=y_true,
-                                       y_pred=y_pred,
-                                       pos_label=pos_label))
+                f1_scores.append(f1_score(y_true=y_true,
+                                          y_pred=y_pred))
 
-                jaccard_scores.append(gm.jaccard(y_true=y_true,
-                                                 y_pred=y_pred,
-                                                 pos_label=pos_label))
-
-                acc_scores.append(gm.total_accuracy(y_true=y_true,
+                jaccard_scores.append(jaccard_score(y_true=y_true,
                                                     y_pred=y_pred))
+
+                precision_scores.append(precision_score(y_true=y_true,
+                                                        y_pred=y_pred))
+
+                recall_scores.append(recall_score(y_true=y_true,
+                                                  y_pred=y_true))
 
             # add scores to the metrics dictionary
             metrics_dict['f1'] = mean(f1_scores)
             metrics_dict['jaccard'] = mean(jaccard_scores)
-            metrics_dict['accuracy'] = mean(acc_scores)
+            metrics_dict['precision'] = mean(precision_scores)
+            metrics_dict['recall'] = mean(recall_scores)
 
             dname_metrics[dname] = metrics_dict
 

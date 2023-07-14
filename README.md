@@ -35,11 +35,6 @@ The geode.losses module
 The losses module contains custom loss functions for model training; these may be removed in the future when implemented
 in Tensorflow.
 
-The geode.metrics module
---------------------
-
-The metrics module contains useful metrics for testing model performance.
-
 The geode.models module
 --------------------
 
